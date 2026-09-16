@@ -6,6 +6,7 @@ from django.test import SimpleTestCase, TestCase
 
 from apps.accounts.tests.helpers import make_user
 from apps.evaluation.engine import evaluate_exercise, evaluate_for_learner
+from apps.evaluation.evaluators.code import CodeEvaluator
 from apps.evaluation.evaluators.fill_gap import FillGapEvaluator
 from apps.evaluation.evaluators.multiple_choice import MultipleChoiceEvaluator
 from apps.evaluation.evaluators.numeric import NumericEvaluator
@@ -35,7 +36,7 @@ class RegistryTests(SimpleTestCase):
             ResponseType.TEXT: DeferredTextEvaluator,
             ResponseType.TRANSLATION: DeferredTextEvaluator,
             ResponseType.MATH_EXPRESSION: DeferredTextEvaluator,
-            ResponseType.CODE: UnsupportedEvaluator,
+            ResponseType.CODE: CodeEvaluator,
             ResponseType.SPEAKING: UnsupportedEvaluator,
             ResponseType.LISTENING: UnsupportedEvaluator,
         }

@@ -57,14 +57,20 @@ def correct(evaluator: str) -> EvaluationResult:
     )
 
 
-def incorrect(evaluator: str, reason: str) -> EvaluationResult:
+def incorrect(
+    evaluator: str,
+    reason: str,
+    message: str = MESSAGE_INCORRECT,
+    details: Mapping[str, str] | None = None,
+) -> EvaluationResult:
+    """``details`` may add safe codes (e.g. an exception class name), never answers."""
     return EvaluationResult(
         EvaluationStatus.INCORRECT,
         evaluator,
-        MESSAGE_INCORRECT,
+        message,
         score=0.0,
         is_correct=False,
-        diagnostics={"reason": reason},
+        diagnostics={**(details or {}), "reason": reason},
     )
 
 

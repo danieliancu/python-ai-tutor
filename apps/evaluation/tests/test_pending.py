@@ -23,7 +23,8 @@ class PendingEvaluatorTests(SimpleTestCase):
             with self.subTest(answer=submitted):
                 result = evaluate_exercise(exercise, submitted)
                 self.assertEqual(result.status, EvaluationStatus.UNSUPPORTED)
-                self.assertEqual(result.evaluator, "code")
+                # Python code goes to the runner, which is disabled in the normal test suite.
+                self.assertEqual(result.evaluator, "python_code")
                 self.assertEqual(result.message, "Code evaluation is not available yet.")
                 self.assertIsNone(result.is_correct)
                 self.assertIsNone(result.score)

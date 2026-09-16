@@ -5,7 +5,11 @@ import logging
 from django.core.exceptions import PermissionDenied
 
 from apps.evaluation import results
-from apps.evaluation.exceptions import EvaluationConfigurationError, EvaluationUnavailable
+from apps.evaluation.exceptions import (
+    EvaluationConfigurationError,
+    EvaluationError,
+    EvaluationUnavailable,
+)
 from apps.evaluation.presentation import evaluation_result_presentation
 from apps.evaluation.registry import get_evaluator
 from apps.evaluation.results import EvaluationResult
@@ -35,5 +39,9 @@ def evaluate_for_learner(user: AnyUser, exercise: Exercise, answer: object) -> d
         result = evaluate_exercise(exercise, answer)
     except EvaluationConfigurationError as exc:
         logger.error("Evaluation failed for exercise %s: %s", exc.exercise_id, exc.problem)
+        raise EvaluationUnavailable() from exc
+    except EvaluationError as exc:
+        # Infrastructure trouble (e.g. the code runner is down) is never the learner's fault.
+        logger.error("Evaluation unavailable for exercise %s: %s", exercise.pk, exc)
         raise EvaluationUnavailable() from exc
     return evaluation_result_presentation(result)

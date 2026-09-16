@@ -35,8 +35,18 @@ Phase 4 adds a generic, deterministic Evaluation Engine (`apps/evaluation/`). `e
 - Learner-facing output (`evaluation_result_presentation`) never includes correct options, accepted answers, expected values or tests. A misconfigured exercise raises `EvaluationConfigurationError` instead of marking the learner wrong.
 - `evaluation_spec` contracts are now validated; a published exercise needs a complete one.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin) and in-memory answer evaluation.
-**Not yet implemented:** saving attempts, running Python code, AI evaluation, learner progress, mastery and the AI tutor. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 4P adds isolated execution for Python code exercises (`apps/python_runner/`). Learner code never runs in the Django process or directly on the host; it runs only in a throw-away Docker container:
+
+- no network, read-only root filesystem, non-root user, all Linux capabilities dropped, `no-new-privileges`
+- memory, CPU and process limits, a time limit and a cap on captured output
+- only the learner's file (plus the app's own harness for function exercises) is mounted, read-only; the only writable space is a small `/tmp`
+- `stdout` exercises: each test runs the program with its input and the output is compared on the host
+- `function` exercises: the function is called with each test's arguments (a fresh container per test, unless the exercise asks for one shared process) and the returned JSON value is compared on the host
+
+Expected outputs, return values and reference solutions never enter the container. If Docker is unavailable, code answers get a safe "can't be checked right now" error and are never marked wrong. There is no local fallback. The runner is stateless and nothing is saved yet.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), in-memory answer evaluation and isolated Python execution (backend only).
+**Not yet implemented:** saving attempts, AI evaluation, learner progress, mastery, the AI tutor and any page or API that runs code. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -57,6 +67,7 @@ apps/learners/   Learner profiles, World enrollment, onboarding and the profile 
 apps/exercises/  Exercise model, validation, safe presentation, selectors, access rules and the
                  Python Foundations exercise pack (data/ + seed_python_exercises command)
 apps/evaluation/ Evaluation engine: result type, evaluator registry and evaluators
+apps/python_runner/ Docker-isolated Python execution and the Python code evaluator
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -135,6 +146,15 @@ Every setting is read from environment variables. See [.env.example](.env.exampl
 | `DJANGO_SECURE_PROXY_SSL_HEADER` | `false` | See the warning below. |
 | `DJANGO_EMAIL_BACKEND` | console backend | Where password reset emails go. Use `django.core.mail.backends.smtp.EmailBackend` (plus Django's `EMAIL_*` settings) for real delivery. |
 | `DJANGO_DEFAULT_FROM_EMAIL` | `Python AI Tutor <no-reply@localhost>` | Sender address for account emails. |
+| `PYTHON_RUNNER_BACKEND` | `disabled` | `docker` enables code execution. Anything else keeps code exercises unchecked. |
+| `PYTHON_RUNNER_IMAGE` | `python:3.11-slim` | Runner image. It is never pulled automatically. |
+| `PYTHON_RUNNER_TIMEOUT_SECONDS` | `3` | Time limit per run (0.1–60). |
+| `PYTHON_RUNNER_MEMORY_MB` | `128` | Memory limit, swap included (32–4096). |
+| `PYTHON_RUNNER_CPUS` | `0.5` | CPU limit (0.05–8). |
+| `PYTHON_RUNNER_PIDS_LIMIT` | `64` | Maximum processes/threads in the container. |
+| `PYTHON_RUNNER_MAX_OUTPUT_BYTES` | `65536` | Output cap; the run is stopped when exceeded. |
+| `PYTHON_RUNNER_MAX_SOURCE_BYTES` | `65536` | Largest accepted submission. |
+| `PYTHON_RUNNER_DOCKER_BINARY` | `docker` | Path to the Docker CLI. |
 
 Booleans accept `true/false`, `1/0`, `yes/no` and `on/off`, in any case. Any other value stops startup with an error. In list values, surrounding whitespace and empty entries are ignored.
 
@@ -157,14 +177,36 @@ python -c "from django.core.management.utils import get_random_secret_key as k; 
 
 The `psycopg[binary]` driver is already listed in `requirements.txt`.
 
+### Python code runner
+
+Code exercises are checked only when Docker is available and the runner is enabled:
+
+```bash
+docker pull python:3.11-slim
+# in .env
+PYTHON_RUNNER_BACKEND=docker
+```
+
+Invalid runner settings stop startup with a clear error; a stopped Docker daemon doesn't (code answers just can't be checked until it is back). For production, pin the image to an immutable digest, e.g. `PYTHON_RUNNER_IMAGE=python:3.11-slim@sha256:<digest from docker pull>`.
+
+Docker containers on the application host are a reasonable boundary for this stage, but they are not perfect isolation. A public, multi-tenant deployment should move execution to dedicated runner hosts and consider stronger sandboxing (for example microVM-based runtimes or strict orchestration policies).
+
 ## Development commands
 
 ```bash
 python manage.py check                  # Django system checks
 python manage.py makemigrations --check --dry-run   # fails if model changes lack migrations
-python manage.py test                   # run the test suite
+python manage.py test                   # run the test suite (never needs Docker)
 ruff check .                            # lint
 ruff format .                           # format (use --check in CI)
+```
+
+The Docker runner has an opt-in integration suite (real containers; includes checking every seeded reference solution, which takes several minutes):
+
+```powershell
+docker pull python:3.11-slim
+$env:PYTHON_RUNNER_INTEGRATION = "1"
+python manage.py test apps.python_runner.tests
 ```
 
 ## Dependencies

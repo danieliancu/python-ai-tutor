@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.learners",
     "apps.exercises",
     "apps.evaluation",
+    "apps.python_runner",
 ]
 
 MIDDLEWARE = [
@@ -115,6 +116,27 @@ if sys.argv[1:2] == ["test"]:
 # Password reset emails print to the console unless a real backend is configured.
 EMAIL_BACKEND = env_str("DJANGO_EMAIL_BACKEND") or "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = env_str("DJANGO_DEFAULT_FROM_EMAIL") or "Python AI Tutor <no-reply@localhost>"
+
+# --- Python code runner -------------------------------------------------------
+
+# Learner code only ever runs inside an isolated Docker container. With the backend left
+# "disabled" (the default) code exercises simply can't be checked; there is no local fallback.
+# Values are validated by apps.python_runner.config when the app starts.
+PYTHON_RUNNER = {
+    "BACKEND": env_str("PYTHON_RUNNER_BACKEND") or "disabled",
+    "IMAGE": env_str("PYTHON_RUNNER_IMAGE") or "python:3.11-slim",
+    "TIMEOUT_SECONDS": env_str("PYTHON_RUNNER_TIMEOUT_SECONDS") or "3",
+    "MEMORY_MB": env_str("PYTHON_RUNNER_MEMORY_MB") or "128",
+    "CPUS": env_str("PYTHON_RUNNER_CPUS") or "0.5",
+    "PIDS_LIMIT": env_str("PYTHON_RUNNER_PIDS_LIMIT") or "64",
+    "MAX_OUTPUT_BYTES": env_str("PYTHON_RUNNER_MAX_OUTPUT_BYTES") or "65536",
+    "MAX_SOURCE_BYTES": env_str("PYTHON_RUNNER_MAX_SOURCE_BYTES") or "65536",
+    "DOCKER_BINARY": env_str("PYTHON_RUNNER_DOCKER_BINARY") or "docker",
+}
+if sys.argv[1:2] == ["test"]:
+    # The normal test suite never starts containers; the opt-in Docker integration tests
+    # build their own configuration.
+    PYTHON_RUNNER["BACKEND"] = "disabled"
 
 # --- Internationalization -----------------------------------------------------
 

@@ -55,8 +55,10 @@ class PythonPackEvaluationTests(TestCase):
         for exercise in self.exercises(ResponseType.CODE):
             with self.subTest(exercise=exercise.slug):
                 result = evaluate_exercise(exercise, exercise.evaluation_spec["reference_solution"])
+                # The normal test suite runs with the Python runner disabled.
                 self.assertEqual(result.status, EvaluationStatus.UNSUPPORTED)
-                self.assertEqual(result.evaluator, "code")
+                self.assertEqual(result.evaluator, "python_code")
+                self.assertEqual(result.diagnostics["reason"], "python_runner_disabled")
 
     def test_text_rubrics_need_review(self) -> None:
         for exercise in self.exercises(ResponseType.TEXT):
