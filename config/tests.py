@@ -27,9 +27,13 @@ class ProductShellTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "home.html")
 
-    def test_continue_action_renders(self) -> None:
-        self.assertContains(self.response, '<button type="button" class="btn-continue"')
-        self.assertContains(self.response, "CONTINUE")
+    def test_lesson_title_renders(self) -> None:
+        self.assertContains(self.response, '<h1 id="lesson-title">Loops</h1>', html=True)
+        self.assertContains(self.response, "Lesson 4 of 8")
+
+    def test_primary_run_code_action_renders(self) -> None:
+        self.assertContains(self.response, 'class="btn-run"')
+        self.assertContains(self.response, "Run Code")
 
     def test_current_skill_renders(self) -> None:
         self.assertContains(self.response, "Current skill")
@@ -40,8 +44,13 @@ class ProductShellTests(TestCase):
         self.assertContains(self.response, "Python Mastery")
         self.assertContains(self.response, "31%")
 
-    def test_static_demo_progress_renders(self) -> None:
-        for text in ("Level 14", "7,840", "12 days"):
+    def test_static_demo_stats_render(self) -> None:
+        for text in (
+            '<span class="stat__word">Level </span>14',
+            "XP</span> 7,840",
+            '12<span class="stat__word"> days</span>',
+            "<dd>12 days</dd>",
+        ):
             with self.subTest(text=text):
                 self.assertContains(self.response, text)
 
@@ -49,23 +58,38 @@ class ProductShellTests(TestCase):
         for status in ("MASTERED", "PRACTISING", "LEARNING", "LOCKED"):
             with self.subTest(status=status):
                 self.assertContains(self.response, status)
-        for skill in ("Variables", "Conditions", "Lists", "Functions"):
+        for skill in ("Variables", "Conditions", "Lists", "Functions", "OOP"):
             with self.subTest(skill=skill):
                 self.assertContains(self.response, skill)
 
-    def test_lesson_workspace_renders(self) -> None:
+    def test_exercise_and_tutor_render(self) -> None:
+        self.assertContains(self.response, "Coding Exercise")
         self.assertContains(self.response, "Print only numbers greater than 10")
+        self.assertContains(self.response, "main.py")
+        self.assertContains(self.response, "AI Tutor")
         self.assertContains(self.response, "Look again at the loop condition.")
+        self.assertContains(self.response, "Build a Number Analyzer")
+
+    def test_primary_navigation_renders(self) -> None:
+        for label in ("Learn", "Practice", "Projects", "Community"):
+            with self.subTest(label=label):
+                self.assertContains(self.response, label)
+        self.assertContains(self.response, 'aria-current="page">Learn</a>')
+
+    def test_demo_controls_are_marked_inactive(self) -> None:
+        self.assertContains(self.response, 'id="demo-note"')
+        self.assertContains(self.response, 'aria-describedby="demo-note"')
 
     def test_major_landmarks_are_present(self) -> None:
         for fragment in (
-            '<header class="app-bar">',
+            '<header class="topbar">',
+            '<nav class="primary-nav" aria-label="Primary">',
+            'role="search"',
             '<main id="lesson"',
-            '<nav class="menu__panel" aria-label="Main">',
+            'aria-label="Breadcrumb"',
+            '<aside id="progress" class="side-progress"',
             'aria-label="Skill map"',
-            '<aside id="progress"',
-            '<section class="editor"',
-            '<aside class="tutor"',
+            '<aside id="tutor" class="side-tutor"',
             '<h1 id="lesson-title">',
             'class="skip-link" href="#lesson"',
             "<footer",

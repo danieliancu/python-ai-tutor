@@ -1,121 +1,282 @@
 {% extends "base.html" %}
 
-{% block title %}{{ lesson.skill }} · Python AI Tutor{% endblock %}
-{% block body_class %}shell{% endblock %}
+{% block title %}{{ lesson.title }} · Python AI Tutor{% endblock %}
+{% block body_class %}app-page{% endblock %}
 {% block skip_target %}lesson{% endblock %}
 {% block skip_label %}Skip to lesson{% endblock %}
 
-{% block header %}
-  <header class="app-bar">
-    <div class="app-bar__inner">
+{% block body %}
+  <p id="demo-note" class="visually-hidden">Preview only. This control is not active yet.</p>
+
+  <div class="app">
+    <header class="topbar">
       <details class="menu">
-        <summary class="menu__trigger" aria-label="Open menu">
-          <span class="menu__icon" aria-hidden="true"></span>
-          <span class="menu__label">Menu</span>
+        <summary class="icon-btn menu__trigger" aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </summary>
-        <nav class="menu__panel" aria-label="Main">
+        <nav class="menu__panel" aria-label="Menu">
           <ul>
             <li><a href="#lesson">Current lesson</a></li>
-            <li><a href="#progress">Your progress</a></li>
+            <li><a href="#progress">Python Mastery</a></li>
             <li><a href="#skill-map">Skill map</a></li>
+            <li><a href="#tutor">AI Tutor</a></li>
+            <li><a href="#next-up">Next up</a></li>
           </ul>
         </nav>
       </details>
 
       <a class="brand" href="{% url 'home' %}">
-        <span class="brand__mark" aria-hidden="true">py</span>
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="32" height="32">
+            <defs>
+              <linearGradient id="brand-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient>
+            </defs>
+            <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#brand-a)"/>
+            <path d="M9 12.5 5.5 16 9 19.5M23 12.5l3.5 3.5-3.5 3.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="16" cy="16" r="3.6" fill="#fbbf24"/>
+          </svg>
+        </span>
         <span class="brand__name">Python AI Tutor</span>
       </a>
 
-      <ul class="chips" aria-label="Progress summary">
-        <li class="chip chip--streak"><span aria-hidden="true">🔥</span> {{ progress.streak_days }}<span class="chip__unit"> days</span></li>
-        <li class="chip chip--level">Level {{ progress.level }}</li>
-        <li class="chip chip--xp">{{ progress.xp }} XP</li>
+      <nav class="primary-nav" aria-label="Primary">
+        <ul>
+          <li><a href="{% url 'home' %}" aria-current="page">Learn</a></li>
+          <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Practice</button></li>
+          <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Projects</button></li>
+          <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Community</button></li>
+        </ul>
+      </nav>
+
+      <div class="search" role="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <label for="site-search" class="visually-hidden">Search lessons and topics</label>
+        <input id="site-search" type="search" placeholder="Search lessons, topics..." readonly aria-describedby="demo-note">
+      </div>
+
+      <ul class="stats-bar" aria-label="Your stats">
+        <li class="stat stat--streak"><span class="stat__icon" aria-hidden="true">🔥</span>{{ progress.streak_days }}<span class="stat__word"> days</span><span class="visually-hidden"> streak</span></li>
+        <li class="stat stat--xp"><span class="stat__label">XP</span> {{ progress.xp }}</li>
+        <li class="stat stat--level">
+          <svg class="stat__gauge" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#e0e9ff"/><circle cx="10" cy="10" r="5.5" fill="none" stroke="#2f6fed" stroke-width="3" pathLength="100" stroke-dasharray="70 100" transform="rotate(-90 10 10)" stroke-linecap="round"/></svg>
+          <span><span class="stat__word">Level </span>{{ progress.level }}</span>
+        </li>
       </ul>
-    </div>
-  </header>
-{% endblock %}
 
-{% block body %}
-  <div class="workspace">
-    <main id="lesson" class="canvas" tabindex="-1" aria-labelledby="lesson-title">
-      <div class="lesson-head">
-        <p class="eyebrow">
-          <span class="eyebrow__skill">{{ lesson.skill }}</span>
-          <span aria-hidden="true">·</span>
-          Exercise {{ lesson.step }} of {{ lesson.total_steps }}
-        </p>
-        <div class="lesson-progress">
-          <progress max="100" value="{{ lesson_percent }}" aria-label="Lesson progress: exercise {{ lesson.step }} of {{ lesson.total_steps }}">{{ lesson_percent }}%</progress>
-        </div>
-        <h1 id="lesson-title">{{ lesson.title }}</h1>
-        <p class="lesson-instruction">{{ lesson.instruction }}</p>
-      </div>
+      <span class="avatar avatar--user" role="img" aria-label="Your profile">
+        <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="15.5" r="6.5" fill="#fff" fill-opacity=".92"/><path d="M8 34c1.6-7 6.3-10 12-10s10.4 3 12 10" fill="#fff" fill-opacity=".92"/></svg>
+      </span>
+    </header>
 
-      <section class="editor" aria-labelledby="editor-title" aria-describedby="editor-note">
-        <div class="editor__bar">
-          <h2 id="editor-title" class="editor__title">main.py</h2>
-          <span id="editor-note" class="editor__note">Preview · editor coming soon</span>
-        </div>
-        <pre class="editor__code"><code>{% for line in lesson.code_lines %}<span class="code-line{% if forloop.counter == lesson.highlight_line %} code-line--flag{% endif %}">{{ line }}</span>
-{% endfor %}</code></pre>
-      </section>
-
-      <aside class="tutor" aria-labelledby="tutor-title">
-        <span class="tutor__avatar" aria-hidden="true"></span>
-        <div class="tutor__body">
-          <h2 id="tutor-title" class="tutor__name">AI Tutor</h2>
-          <p class="tutor__hint">{{ lesson.tutor_hint }}</p>
-          <p class="tutor__detail">{{ lesson.tutor_detail }}</p>
-        </div>
-      </aside>
-
-      <div class="action-bar">
-        <button type="button" class="btn-continue" aria-describedby="continue-note">CONTINUE</button>
-        <p id="continue-note" class="action-bar__note">Demo preview: checking your answer arrives in a later release.</p>
-      </div>
-    </main>
-
-    <aside id="progress" class="rail" aria-labelledby="progress-title">
-      <details class="rail__details" open>
-        <summary class="rail__summary">
-          <span>Your progress</span>
-          <span class="rail__summary-meta">{{ progress.mastery }}% mastery · {{ progress.current_skill }}</span>
-        </summary>
-
-        <div class="rail__content">
-          <h2 id="progress-title" class="rail__heading">Your progress</h2>
-
-          <div class="mastery">
-            <p class="mastery__label">
-              <span>Python Mastery</span>
-              <strong class="mastery__value">{{ progress.mastery }}%</strong>
-            </p>
-            <progress max="100" value="{{ progress.mastery }}" aria-label="Python Mastery">{{ progress.mastery }}%</progress>
-          </div>
-
-          <dl class="stats">
-            <div><dt>Level</dt><dd>{{ progress.level }}</dd></div>
-            <div><dt>XP</dt><dd>{{ progress.xp }}</dd></div>
-            <div><dt>Streak</dt><dd>{{ progress.streak_days }} days</dd></div>
-            <div><dt>Current skill</dt><dd>{{ progress.current_skill }}</dd></div>
-          </dl>
-
-          <nav id="skill-map" class="skill-map" aria-label="Skill map">
-            <h2 class="rail__heading">Skill map</h2>
+    <div class="shell">
+      <main id="lesson" class="lesson" tabindex="-1" aria-labelledby="lesson-title">
+        <div class="lesson__meta">
+          <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol>
-              {% for skill in skills %}
-                <li class="skill" data-state="{{ skill.state }}"{% if skill.current %} aria-current="step"{% endif %}>
-                  <span class="skill__icon" aria-hidden="true">{{ skill.icon }}</span>
-                  <span class="skill__name">{{ skill.name }}</span>
-                  <span class="skill__status">{% if skill.current %}<span class="skill__current">Current · </span>{% endif %}{{ skill.status|upper }}</span>
-                </li>
-              {% endfor %}
+              <li>
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="currentColor"/><circle cx="14" cy="9" r="2.2" fill="currentColor" opacity=".7"/><circle cx="7" cy="14.5" r="2.2" fill="currentColor" opacity=".45"/></svg>
+                <span>{{ lesson.course }}</span>
+              </li>
+              <li aria-current="page">{{ lesson.title }}</li>
             </ol>
           </nav>
+          <div class="pager">
+            <span class="pager__label">Lesson {{ lesson.number }} of {{ lesson.total }}</span>
+            <span class="pager__buttons">
+              <button type="button" class="icon-btn icon-btn--boxed" aria-label="Previous lesson" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="m12 5-5 5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button><button type="button" class="icon-btn icon-btn--boxed" aria-label="Next lesson" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="m8 5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </span>
+          </div>
         </div>
-      </details>
-    </aside>
+
+        <div class="lesson__head">
+          <svg class="lesson__icon" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
+            <defs>
+              <linearGradient id="loop-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6fed"/><stop offset="1" stop-color="#38b2ac"/></linearGradient>
+              <linearGradient id="loop-b" x1="1" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#34c77b"/><stop offset="1" stop-color="#38b2ac"/></linearGradient>
+            </defs>
+            <path d="M13 38a20 20 0 0 1 33-22" fill="none" stroke="url(#loop-a)" stroke-width="6" stroke-linecap="round"/>
+            <path d="m41 8 7 8-9 4" fill="none" stroke="url(#loop-a)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M51 26a20 20 0 0 1-33 22" fill="none" stroke="url(#loop-b)" stroke-width="6" stroke-linecap="round"/>
+            <path d="m23 56-7-8 9-4" fill="none" stroke="url(#loop-b)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <h1 id="lesson-title">{{ lesson.title }}</h1>
+            <p class="lesson__description">{{ lesson.description }}</p>
+          </div>
+        </div>
+
+        <section class="exercise" aria-labelledby="exercise-title">
+          <div class="exercise__head">
+            <span class="exercise__number" aria-hidden="true">{{ lesson.exercise_number }}</span>
+            <div>
+              <p class="exercise__kicker">Coding Exercise<span class="visually-hidden"> {{ lesson.exercise_number }}</span></p>
+              <h2 id="exercise-title" class="exercise__title">{{ lesson.exercise_title }}</h2>
+              <p class="exercise__instruction">{{ lesson.instruction }}</p>
+            </div>
+          </div>
+
+          <div class="editor" role="group" aria-label="Code editor preview">
+            <div class="editor__tabs">
+              <span class="editor__tab">main.py</span>
+              <button type="button" class="text-btn" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4.5 10a5.5 5.5 0 1 0 1.8-4.1M4.5 3.5v3h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Reset
+              </button>
+            </div>
+<pre class="editor__code"><code><span class="ln">numbers = [<span class="t-num">3</span>, <span class="t-num">8</span>, <span class="t-num">12</span>, <span class="t-num">15</span>, <span class="t-num">7</span>, <span class="t-num">20</span>, <span class="t-num">1</span>]</span>
+<span class="ln"><span class="t-kw">for</span> n <span class="t-kw">in</span> numbers:</span>
+<span class="ln"><span class="indent">    </span><span class="t-kw">if</span> n &gt; <span class="t-num">10</span>:</span>
+<span class="ln ln--active"><span class="indent">    </span><span class="indent">    </span><span class="t-fn">print</span>(n)<span class="caret" aria-hidden="true"></span></span></code></pre>
+          </div>
+
+          <div class="run-row">
+            <button type="button" class="btn-run" aria-describedby="demo-note">
+              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M6 4.2v11.6a.6.6 0 0 0 .9.5l9.3-5.8a.6.6 0 0 0 0-1L6.9 3.7a.6.6 0 0 0-.9.5Z" fill="currentColor"/></svg>
+              Run Code
+            </button>
+            <p class="run-row__hint">Use <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run</p>
+            <button type="button" class="icon-btn run-row__expand" aria-label="Run options" aria-disabled="true" aria-describedby="demo-note">
+              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button type="button" class="icon-btn" aria-label="More actions" aria-disabled="true" aria-describedby="demo-note">
+              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="4.5" cy="10" r="1.5" fill="currentColor"/><circle cx="10" cy="10" r="1.5" fill="currentColor"/><circle cx="15.5" cy="10" r="1.5" fill="currentColor"/></svg>
+            </button>
+          </div>
+
+          <div class="console" role="group" aria-label="Program output preview">
+            <div class="console__tabs">
+              <span class="console__tab is-active">Output</span>
+              <span class="console__tab">Errors</span>
+              <button type="button" class="text-btn" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6m-6.5 0 .7 9.5h7.6l.7-9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Clear
+              </button>
+            </div>
+            <pre class="console__output"><samp>{% for line in lesson.output_lines %}{{ line }}
+{% endfor %}<span class="console__prompt">&gt;</span> <span class="caret caret--light" aria-hidden="true"></span></samp></pre>
+          </div>
+        </section>
+      </main>
+
+      <aside id="progress" class="side-progress" aria-labelledby="mastery-title">
+        <div class="mastery">
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+              <defs>
+                <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc9b5"/><stop offset="1" stop-color="#3aa6a0"/></linearGradient>
+              </defs>
+              <circle cx="60" cy="60" r="50" class="ring__track"/>
+              <circle cx="60" cy="60" r="50" class="ring__value" pathLength="100" stroke-dasharray="{{ progress.mastery }} 100" transform="rotate(-90 60 60)"/>
+            </svg>
+            <span class="ring__label">{{ progress.mastery }}%</span>
+          </div>
+          <div class="mastery__text">
+            <h2 id="mastery-title" class="mastery__title">Python Mastery</h2>
+            <p class="mastery__helper mastery__helper--desktop">Keep going. You're building real skills.</p>
+            <p class="mastery__helper mastery__helper--mobile">{{ progress.mastery }}% mastery · Keep going!</p>
+          </div>
+          <button type="button" class="icon-btn mastery__toggle" aria-expanded="false" aria-controls="progress-details" hidden>
+            <span class="visually-hidden">Show progress details</span>
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <dl id="progress-details" class="progress-details">
+          <div class="progress-details__item progress-details__item--current"><dt>Current skill</dt><dd>{{ progress.current_skill }}</dd></div>
+          <div class="progress-details__item"><dt>Level</dt><dd>{{ progress.level }}</dd></div>
+          <div class="progress-details__item"><dt>XP</dt><dd>{{ progress.xp }}</dd></div>
+          <div class="progress-details__item"><dt>Streak</dt><dd>{{ progress.streak_days }} days</dd></div>
+        </dl>
+
+        <nav id="skill-map" class="skill-map" aria-label="Skill map">
+          <h2 class="skill-map__title">
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><rect x="3" y="11" width="3.2" height="6" rx="1" fill="#5cc9b5"/><rect x="8.4" y="7" width="3.2" height="10" rx="1" fill="#3aa6a0"/><rect x="13.8" y="3" width="3.2" height="14" rx="1" fill="#2f8f8a"/></svg>
+            Skill map
+          </h2>
+          <ol class="skills">
+            {% for skill in skills %}
+              <li class="skill{% if skill.extra %} skill--extra{% endif %}" data-state="{{ skill.state }}"{% if skill.current %} aria-current="step"{% endif %}>
+                <span class="skill__dot" aria-hidden="true">{% if skill.state == "mastered" %}<svg viewBox="0 0 20 20" width="12" height="12"><path d="m5 10.5 3.2 3L15 6.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endif %}</span>
+                <span class="skill__name">{{ skill.name }}</span>
+                <span class="skill__status">{% if skill.current %}<span class="visually-hidden">Current skill, </span>{% endif %}{{ skill.status|upper }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        </nav>
+
+        <figure class="quote">
+          <blockquote><p>“{{ quote }}”</p></blockquote>
+          <figcaption>— Unknown</figcaption>
+        </figure>
+      </aside>
+
+      <aside id="tutor" class="side-tutor" aria-labelledby="tutor-title">
+        <section class="tutor">
+          <div class="tutor__head">
+            <span class="avatar avatar--tutor" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5Z" fill="#fff"/></svg>
+            </span>
+            <h2 id="tutor-title" class="tutor__title">AI Tutor</h2>
+            <span class="badge">Preview</span>
+          </div>
+
+          <div class="tutor__thread">
+            <p class="bubble bubble--hint">{{ lesson.tutor_hint }}</p>
+            {% for message in lesson.tutor_messages %}
+              <p class="bubble{% if not forloop.first %} bubble--secondary{% endif %}">{{ message }}</p>
+            {% endfor %}
+          </div>
+
+          <div class="tutor__feedback">
+            <span>Was this helpful?</span>
+            <button type="button" class="icon-btn" aria-label="Helpful" aria-disabled="true" aria-describedby="demo-note">
+              <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true"><path d="M6.5 9v7.5H4a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1h2.5Zm0 0 3-5.5a1.8 1.8 0 0 1 2 2.4L11 9h4.3a1.5 1.5 0 0 1 1.5 1.8l-1 4.5a1.5 1.5 0 0 1-1.5 1.2H6.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </button>
+            <button type="button" class="icon-btn" aria-label="Not helpful" aria-disabled="true" aria-describedby="demo-note">
+              <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true" style="transform: rotate(180deg)"><path d="M6.5 9v7.5H4a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1h2.5Zm0 0 3-5.5a1.8 1.8 0 0 1 2 2.4L11 9h4.3a1.5 1.5 0 0 1 1.5 1.8l-1 4.5a1.5 1.5 0 0 1-1.5 1.2H6.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <div class="ask">
+            <label for="tutor-question" class="visually-hidden">Ask the tutor a question</label>
+            <input id="tutor-question" type="text" placeholder="Ask a question or get a hint..." readonly aria-describedby="demo-note">
+            <button type="button" class="icon-btn ask__send" aria-label="Send question" aria-disabled="true" aria-describedby="demo-note">
+              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3.5 10 16.5 4l-4.2 12.5-2.6-5-6.2-1.5Z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section id="next-up" class="next-up" aria-labelledby="next-title">
+          <div class="next-up__head">
+            <span class="next-up__marker" aria-hidden="true"></span>
+            <h2 class="next-up__label">Next Up</h2>
+            <span class="badge badge--teal">{{ lesson.next_up.badge }}</span>
+          </div>
+          <div class="next-up__body">
+            <span class="next-up__icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" width="30" height="30"><rect x="6" y="17" width="5" height="9" rx="1.2" fill="#5cc9b5"/><rect x="13.5" y="11" width="5" height="15" rx="1.2" fill="#3aa6a0"/><rect x="21" y="6" width="5" height="20" rx="1.2" fill="#2f8f8a"/></svg>
+            </span>
+            <div>
+              <h3 id="next-title" class="next-up__title">{{ lesson.next_up.title }}</h3>
+              <p class="next-up__description">{{ lesson.next_up.description }}</p>
+            </div>
+          </div>
+          <button type="button" class="btn-outline" aria-disabled="true" aria-describedby="demo-note">
+            Preview Challenge
+            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h11m-4-4.5 4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </section>
+
+        <p class="tagline">
+          <svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true"><path d="M2 21 14 7l6 7 5-5 13 12Z" fill="currentColor" opacity=".35"/><path d="m11 10.5 3-3.5 3 3.5-1.5-.8-1.5 1-1.5-1Z" fill="#fff" opacity=".8"/></svg>
+          <span>Better developers,<br>a brighter tomorrow</span>
+        </p>
+      </aside>
+    </div>
   </div>
 {% endblock %}
 
@@ -128,12 +289,20 @@
 {% block extra_js %}
   <script>
     (function () {
-      // Collapse secondary progress on small screens; without JS it simply stays open.
-      var rail = document.querySelector(".rail__details");
-      if (rail && window.matchMedia("(max-width: 639px)").matches) {
-        rail.open = false;
+      // Mobile: progress details collapse behind a toggle. Without JS they stay visible.
+      var toggle = document.querySelector(".mastery__toggle");
+      var progress = document.querySelector(".side-progress");
+      if (toggle && progress) {
+        toggle.hidden = false;
+        toggle.addEventListener("click", function () {
+          var open = toggle.getAttribute("aria-expanded") !== "true";
+          toggle.setAttribute("aria-expanded", String(open));
+          progress.classList.toggle("is-open", open);
+          toggle.querySelector(".visually-hidden").textContent =
+            (open ? "Hide" : "Show") + " progress details";
+        });
       }
-      // Close the menu with Escape and when a menu link is chosen.
+      // Menu: close with Escape or after choosing a link.
       var menu = document.querySelector(".menu");
       if (!menu) return;
       var trigger = menu.querySelector("summary");
