@@ -26,8 +26,10 @@ For example: `code` + `fix` (debug a program), `translation` + `create` (transla
 
 `content` holds what the learner sees and is validated so it never contains answers. `evaluation_spec` holds the private answer configuration for the future evaluation engine; it is never included in `exercise_presentation()` or any template. Learners only reach exercises whose whole curriculum chain is published, in Worlds where their enrollment is active or completed (`apps/exercises/access.py`).
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment and exercise definitions (editable in the admin).
-**Not yet implemented:** answer evaluation, attempts, a code runner, learner progress, mastery and the AI tutor. No exercises are seeded yet; the Python exercise pack comes next. The homepage progress figures are still Phase 1 demo content.
+Phase 3P adds the first real content pack: 147 Python Foundations exercises covering all 11 skills and 53 concepts. Each skill uses all four learning modes (recognise → complete → fix → create), mostly as multiple-choice, fill-the-gap and code exercises. Every exercise has a private evaluation spec: the correct option, accepted gap answers, or code tests (`stdout` or `function` strategy) with a reference solution. The definitions live in `apps/exercises/data/python_foundations/`.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment and the Python Foundations exercises (editable in the admin).
+**Not yet implemented:** answer evaluation, attempts, running Python code, learner progress, mastery and the AI tutor. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -45,7 +47,8 @@ config/          Django project: settings, URLs, WSGI/ASGI, env helpers, root vi
 apps/accounts/   Custom user model (AUTH_USER_MODEL = "accounts.User"), signup/login/password reset
 apps/curriculum/ Curriculum models, admin, selectors, seed data and seed_curriculum command
 apps/learners/   Learner profiles, World enrollment, onboarding and the profile page
-apps/exercises/  Exercise model, content validation, safe presentation, selectors and access rules
+apps/exercises/  Exercise model, validation, safe presentation, selectors, access rules and the
+                 Python Foundations exercise pack (data/ + seed_python_exercises command)
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -78,16 +81,17 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-### Curriculum data
+### Curriculum and exercise data
 
-Load or refresh the Python Foundations curriculum after migrating:
+Load or refresh the Python Foundations curriculum and its exercises after migrating (in this order):
 
 ```bash
 python manage.py migrate
 python manage.py seed_curriculum
+python manage.py seed_python_exercises
 ```
 
-The seed is idempotent. Records are matched by slug within their parent, so running it again updates the seeded records without duplicating them, and it never deletes records it does not define.
+Both seeds are idempotent. Records are matched by slug within their parent, so running them again updates the seeded records (repairing manual edits) without duplicating them, and they never delete records they don't define. `seed_python_exercises` stops with an error if the curriculum hasn't been seeded yet.
 
 Once the server is running, these URLs are available:
 
