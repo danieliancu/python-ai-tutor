@@ -1,6 +1,16 @@
 # Cursuri Python
 
-This is the Django foundation for a SaaS product: a Python tutor with a personal AI tutor. Phase 0 set up the project structure, configuration, a custom user model, admin and a health check. Phase 1 adds the product shell, a static demo of the learning interface on the homepage. It is presentation only. The progress, skill map, lesson, editor and tutor content are placeholder data, and there is no authentication, curriculum, AI or code execution yet.
+This is the Django foundation for a SaaS product: a Python tutor with a personal AI tutor. Phase 0 set up the project structure, configuration, a custom user model, admin and a health check. Phase 1 adds the product shell, a static demo of the learning interface on the homepage. It is presentation only: the progress, skill map, lesson, editor and tutor content on the page are placeholder data.
+
+Phase 2 adds the curriculum engine:
+
+- a curriculum database structure: World → Skill → Concept → Lesson
+- explicit Skill and Concept prerequisites, validated to stay within one World and free of cycles
+- the Python Foundations seed (11 skills, 53 concepts with learning objectives, lessons and prerequisite graphs)
+- Django admin for all curriculum models and a `published_curriculum()` query helper
+
+**Available:** curriculum data, editable in the admin.
+**Not yet implemented:** learner progress, exercises, code execution, mastery, the AI tutor and authentication UI. The homepage still shows the Phase 1 demo content.
 
 ## Stack
 
@@ -16,6 +26,7 @@ This is the Django foundation for a SaaS product: a Python tutor with a personal
 ```
 config/          Django project: settings, URLs, WSGI/ASGI, env helpers, root views
 apps/accounts/   Custom user model (AUTH_USER_MODEL = "accounts.User")
+apps/curriculum/ Curriculum models, admin, selectors, seed data and seed_curriculum command
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -47,6 +58,17 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
+
+### Curriculum data
+
+Load or refresh the Python Foundations curriculum after migrating:
+
+```bash
+python manage.py migrate
+python manage.py seed_curriculum
+```
+
+The seed is idempotent. Records are matched by slug within their parent, so running it again updates the seeded records without duplicating them, and it never deletes records it does not define.
 
 Once the server is running, these URLs are available:
 
