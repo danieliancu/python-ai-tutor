@@ -106,4 +106,10 @@ class Exercise(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self) -> None:
-        validate_exercise_json(self.response_type, self.content, self.evaluation_spec)
+        # Drafts may leave the evaluation spec empty; published exercises must be checkable.
+        validate_exercise_json(
+            self.response_type,
+            self.content,
+            self.evaluation_spec,
+            require_spec=self.is_published,
+        )

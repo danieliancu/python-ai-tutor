@@ -19,7 +19,7 @@ class ExerciseModelTests(TestCase):
         self.assertEqual(str(exercise), f"{self.lesson.title}: Print big numbers")
 
     def test_defaults(self) -> None:
-        exercise = make_exercise(self.lesson, content={}, is_published=False)
+        exercise = make_exercise(self.lesson, content={}, evaluation_spec={}, is_published=False)
         fresh = Exercise.objects.get(pk=exercise.pk)
         self.assertEqual(fresh.instructions, "")
         self.assertEqual(fresh.evaluation_spec, {})
@@ -27,7 +27,12 @@ class ExerciseModelTests(TestCase):
         self.assertFalse(fresh.is_published)
 
     def test_json_round_trip(self) -> None:
-        spec = {"tests": [{"input": [3, 12], "expected_stdout": "12\n"}], "tolerance": 0.5}
+        spec = {
+            "strategy": "function",
+            "function_name": "largest",
+            "tests": [{"args": [[3, 12]], "kwargs": {}, "expected": 12}],
+            "note": {"nested": [1.5, None, True]},
+        }
         exercise = make_exercise(self.lesson, evaluation_spec=spec)
         self.assertEqual(Exercise.objects.get(pk=exercise.pk).evaluation_spec, spec)
 

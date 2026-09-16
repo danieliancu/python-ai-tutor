@@ -143,3 +143,129 @@ class ValidationTests(SimpleTestCase):
         with self.assertRaises(ValidationError) as ctx:
             validate_exercise_json(ResponseType.MULTIPLE_CHOICE, {}, [])
         self.assertEqual(set(ctx.exception.message_dict), {"content", "evaluation_spec"})
+
+
+STDOUT_TEST = {"stdin": "", "expected_stdout": "hi\n"}
+FUNCTION_TEST = {"args": [2], "kwargs": {}, "expected": 4}
+VALID_SPECS = {
+    ResponseType.MULTIPLE_CHOICE: ({"options": [A, B]}, {"correct_option": "b"}),
+    ResponseType.FILL_GAP: ({"template": "x __ 1"}, {"accepted_answers": [">"]}),
+    ResponseType.NUMERIC: ({}, {"expected": 12.5, "tolerance": 0}),
+    ResponseType.TEXT: ({}, {"strategy": "rubric", "criteria": ["Clear steps."]}),
+    ResponseType.CODE: ({}, {"strategy": "stdout", "tests": [STDOUT_TEST]}),
+}
+
+
+class EvaluationSpecTests(SimpleTestCase):
+    def assert_spec_valid(self, response_type, spec, content=None) -> None:
+        content = VALID_SPECS[response_type][0] if content is None else content
+        validate_exercise_json(response_type, content, spec, require_spec=True)
+
+    def assert_spec_invalid(self, response_type, spec, text="", content=None) -> None:
+        content = VALID_SPECS[response_type][0] if content is None else content
+        with self.assertRaises(ValidationError) as ctx:
+            validate_exercise_json(response_type, content, spec, require_spec=True)
+        self.assertIn("evaluation_spec", ctx.exception.message_dict)
+        if text:
+            self.assertIn(text, " ".join(ctx.exception.message_dict["evaluation_spec"]))
+
+    def test_valid_specs(self) -> None:
+        for response_type, (content, spec) in VALID_SPECS.items():
+            with self.subTest(response_type=response_type):
+                self.assert_spec_valid(response_type, spec, content)
+
+    def test_empty_spec_is_only_allowed_for_drafts(self) -> None:
+        for response_type, (content, _) in VALID_SPECS.items():
+            with self.subTest(response_type=response_type):
+                validate_exercise_json(response_type, content, {}, require_spec=False)
+                self.assert_spec_invalid(response_type, {}, content=content)
+
+    def test_non_empty_specs_are_checked_even_for_drafts(self) -> None:
+        with self.assertRaises(ValidationError):
+            validate_exercise_json(
+                ResponseType.NUMERIC, {}, {"expected": "twelve"}, require_spec=False
+            )
+
+    def test_types_without_a_contract_accept_any_object(self) -> None:
+        for response_type in (
+            ResponseType.TRANSLATION,
+            ResponseType.MATH_EXPRESSION,
+            ResponseType.SPEAKING,
+            ResponseType.LISTENING,
+        ):
+            with self.subTest(response_type=response_type):
+                validate_exercise_json(response_type, {}, {}, require_spec=True)
+                validate_exercise_json(response_type, {}, {"anything": [1]}, require_spec=True)
+
+    def test_multiple_choice_spec(self) -> None:
+        for spec in ({}, {"correct_option": ""}, {"correct_option": 1}):
+            with self.subTest(spec=spec):
+                self.assert_spec_invalid(ResponseType.MULTIPLE_CHOICE, spec, "correct_option")
+        self.assert_spec_invalid(
+            ResponseType.MULTIPLE_CHOICE, {"correct_option": "z"}, "not one of the option ids"
+        )
+
+    def test_fill_gap_spec(self) -> None:
+        for spec in (
+            {"accepted_answers": []},
+            {"accepted_answers": ">"},
+            {"accepted_answers": [""]},
+            {"accepted_answers": [">", 1]},
+        ):
+            with self.subTest(spec=spec):
+                self.assert_spec_invalid(ResponseType.FILL_GAP, spec, "accepted_answers")
+        self.assert_spec_invalid(
+            ResponseType.FILL_GAP,
+            {"accepted_answers": [">"], "case_sensitive": "no"},
+            "case_sensitive",
+        )
+        self.assert_spec_valid(
+            ResponseType.FILL_GAP, {"accepted_answers": ["x"], "case_sensitive": False}
+        )
+
+    def test_numeric_spec(self) -> None:
+        for spec in (
+            {"expected": "12"},
+            {"expected": True},
+            {"expected": float("nan")},
+            {"expected": float("inf")},
+        ):
+            with self.subTest(spec=spec):
+                self.assert_spec_invalid(ResponseType.NUMERIC, spec, "expected")
+        for tolerance in (-1, "0.1", float("inf"), True):
+            with self.subTest(tolerance=tolerance):
+                self.assert_spec_invalid(
+                    ResponseType.NUMERIC, {"expected": 1, "tolerance": tolerance}, "tolerance"
+                )
+        self.assert_spec_valid(ResponseType.NUMERIC, {"expected": -3})
+
+    def test_text_spec(self) -> None:
+        self.assert_spec_invalid(ResponseType.TEXT, {"criteria": ["x"]}, "rubric")
+        for criteria in ([], [""], "x", None):
+            with self.subTest(criteria=criteria):
+                self.assert_spec_invalid(
+                    ResponseType.TEXT, {"strategy": "rubric", "criteria": criteria}, "criteria"
+                )
+
+    def test_code_spec(self) -> None:
+        function_spec = {
+            "strategy": "function",
+            "function_name": "double",
+            "tests": [FUNCTION_TEST],
+            "reference_solution": "def double(n):\n    return n * 2\n",
+        }
+        self.assert_spec_valid(ResponseType.CODE, function_spec)
+        for spec, text in (
+            ({"strategy": "shell", "tests": [STDOUT_TEST]}, "strategy"),
+            ({"strategy": "stdout", "tests": []}, "tests"),
+            ({"strategy": "stdout"}, "tests"),
+            ({"strategy": "stdout", "tests": [{"stdin": ""}]}, "expected_stdout"),
+            ({"strategy": "stdout", "tests": ["x"]}, "must be an object"),
+            ({**function_spec, "function_name": "not valid"}, "function_name"),
+            ({**function_spec, "function_name": None}, "function_name"),
+            ({**function_spec, "tests": [{"args": 2, "kwargs": {}, "expected": 4}]}, "args"),
+            ({**function_spec, "tests": [{"args": [2], "kwargs": {}}]}, "expected"),
+            ({**function_spec, "reference_solution": 5}, "reference_solution"),
+        ):
+            with self.subTest(spec=spec):
+                self.assert_spec_invalid(ResponseType.CODE, spec, text)

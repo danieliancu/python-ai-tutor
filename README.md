@@ -28,8 +28,15 @@ For example: `code` + `fix` (debug a program), `translation` + `create` (transla
 
 Phase 3P adds the first real content pack: 147 Python Foundations exercises covering all 11 skills and 53 concepts. Each skill uses all four learning modes (recognise → complete → fix → create), mostly as multiple-choice, fill-the-gap and code exercises. Every exercise has a private evaluation spec: the correct option, accepted gap answers, or code tests (`stdout` or `function` strategy) with a reference solution. The definitions live in `apps/exercises/data/python_foundations/`.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment and the Python Foundations exercises (editable in the admin).
-**Not yet implemented:** answer evaluation, attempts, running Python code, learner progress, mastery and the AI tutor. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 4 adds a generic, deterministic Evaluation Engine (`apps/evaluation/`). `evaluate_exercise(exercise, answer)` picks an evaluator from the exercise's `response_type` and returns an in-memory `EvaluationResult` (status, score 0.0–1.0, is_correct, a safe message and internal reason codes). Nothing is stored yet.
+
+- Evaluated automatically now: multiple choice, fill the gap and numeric (with an optional tolerance).
+- Deferred: code (the Python runner comes in Phase 4P), text rubrics, translations and maths expressions (returned as `review_required`), speaking and listening (`unsupported`).
+- Learner-facing output (`evaluation_result_presentation`) never includes correct options, accepted answers, expected values or tests. A misconfigured exercise raises `EvaluationConfigurationError` instead of marking the learner wrong.
+- `evaluation_spec` contracts are now validated; a published exercise needs a complete one.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin) and in-memory answer evaluation.
+**Not yet implemented:** saving attempts, running Python code, AI evaluation, learner progress, mastery and the AI tutor. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -49,6 +56,7 @@ apps/curriculum/ Curriculum models, admin, selectors, seed data and seed_curricu
 apps/learners/   Learner profiles, World enrollment, onboarding and the profile page
 apps/exercises/  Exercise model, validation, safe presentation, selectors, access rules and the
                  Python Foundations exercise pack (data/ + seed_python_exercises command)
+apps/evaluation/ Evaluation engine: result type, evaluator registry and evaluators
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```

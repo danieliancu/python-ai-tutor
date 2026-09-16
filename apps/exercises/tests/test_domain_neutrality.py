@@ -23,7 +23,10 @@ class DomainNeutralityTests(TestCase):
                 "language": "python",
                 "starter_code": "for n in numbers:\n    if n < 10:\n        print(n)\n",
             },
-            evaluation_spec={"tests": [{"stdin": "", "expected_stdout": "12\n15\n"}]},
+            evaluation_spec={
+                "strategy": "stdout",
+                "tests": [{"stdin": "", "expected_stdout": "12\n15\n"}],
+            },
         )
         self.english = make_exercise(
             make_lesson_chain("English A1"),
