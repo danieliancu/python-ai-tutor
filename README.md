@@ -9,8 +9,16 @@ Phase 2 adds the curriculum engine:
 - the Python Foundations seed (11 skills, 53 concepts with learning objectives, lessons and prerequisite graphs)
 - Django admin for all curriculum models and a `published_curriculum()` query helper
 
-**Available:** curriculum data, editable in the admin.
-**Not yet implemented:** learner progress, exercises, code execution, mastery, the AI tutor and authentication UI. The homepage still shows the Phase 1 demo content.
+Phase 2B adds learner accounts:
+
+- signup, login with username or email (case-insensitive), POST-only logout and password reset
+- a learner profile (preferred name, time zone) separate from the user account
+- onboarding: choose a preferred name and enroll in a published learning path (World)
+- enrollments: a learner can be enrolled in any number of Worlds
+- an account menu on the homepage and admin for profiles and enrollments
+
+**Available:** curriculum data, learner accounts, profiles and World enrollment.
+**Not yet implemented:** learner progress, exercises, code execution, mastery and the AI tutor. Enrollment records which Worlds a learner joined, not how far they got. The homepage progress figures are still Phase 1 demo content.
 
 ## Stack
 
@@ -25,8 +33,9 @@ Phase 2 adds the curriculum engine:
 
 ```
 config/          Django project: settings, URLs, WSGI/ASGI, env helpers, root views
-apps/accounts/   Custom user model (AUTH_USER_MODEL = "accounts.User")
+apps/accounts/   Custom user model (AUTH_USER_MODEL = "accounts.User"), signup/login/password reset
 apps/curriculum/ Curriculum models, admin, selectors, seed data and seed_curriculum command
+apps/learners/   Learner profiles, World enrollment, onboarding and the profile page
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -75,6 +84,15 @@ Once the server is running, these URLs are available:
 - http://127.0.0.1:8000/: homepage, the static learning-interface demo (product shell)
 - http://127.0.0.1:8000/health/: returns `{"status": "ok"}`
 - http://127.0.0.1:8000/admin/: Django admin
+- http://127.0.0.1:8000/accounts/signup/: create an account
+- http://127.0.0.1:8000/accounts/login/: sign in with email or username
+- http://127.0.0.1:8000/accounts/password-reset/: request a password reset link
+- http://127.0.0.1:8000/onboarding/: choose a name and a learning path (signed-in users)
+- http://127.0.0.1:8000/profile/: your profile and enrollments (signed-in users)
+
+Logging out is a POST to `/accounts/logout/` (the account menu and profile page provide the button).
+
+In development, password reset emails are printed to the console where `runserver` is running.
 
 ## Configuration
 
@@ -93,6 +111,8 @@ Every setting is read from environment variables. See [.env.example](.env.exampl
 | `DJANGO_SECURE_SSL_REDIRECT` | `true` | Only applies when DEBUG is off. |
 | `DJANGO_SECURE_HSTS_SECONDS` | `0` | Only applies when DEBUG is off. Increase it gradually once HTTPS is confirmed. |
 | `DJANGO_SECURE_PROXY_SSL_HEADER` | `false` | See the warning below. |
+| `DJANGO_EMAIL_BACKEND` | console backend | Where password reset emails go. Use `django.core.mail.backends.smtp.EmailBackend` (plus Django's `EMAIL_*` settings) for real delivery. |
+| `DJANGO_DEFAULT_FROM_EMAIL` | `Python AI Tutor <no-reply@localhost>` | Sender address for account emails. |
 
 Booleans accept `true/false`, `1/0`, `yes/no` and `on/off`, in any case. Any other value stops startup with an error. In list values, surrounding whitespace and empty entries are ignored.
 

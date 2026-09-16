@@ -3,6 +3,7 @@
 See `.env.example` for the available variables.
 """
 
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.accounts",
     "apps.curriculum",
+    "apps.learners",
 ]
 
 MIDDLEWARE = [
@@ -90,6 +92,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Authentication -----------------------------------------------------------
 
 AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -97,6 +102,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# The test suite creates many users; a fast hasher keeps it quick. Only applies to
+# `manage.py test` — every other command uses Django's default (PBKDF2) hashers.
+if sys.argv[1:2] == ["test"]:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# --- Email ---------------------------------------------------------------------
+
+# Password reset emails print to the console unless a real backend is configured.
+EMAIL_BACKEND = env_str("DJANGO_EMAIL_BACKEND") or "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = env_str("DJANGO_DEFAULT_FROM_EMAIL") or "Python AI Tutor <no-reply@localhost>"
 
 # --- Internationalization -----------------------------------------------------
 

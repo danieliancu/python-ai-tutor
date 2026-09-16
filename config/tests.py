@@ -5,6 +5,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
+from apps.accounts.models import User
+from apps.learners.models import LearnerProfile
 from config.env import env_bool, env_int, env_list
 
 
@@ -102,6 +104,42 @@ class ProductShellTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+
+class HomeAuthAwareTests(TestCase):
+    def test_anonymous_visitor_sees_sign_in(self) -> None:
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'<a class="signin-link" href="{reverse("accounts:login")}"')
+        self.assertNotContains(response, reverse("accounts:logout"))
+        self.assertNotContains(response, "account-menu")
+
+    def test_signed_in_learner_sees_account_menu(self) -> None:
+        user = User.objects.create_user("daniel", "daniel@example.com", "pass-12345-word")
+        LearnerProfile.objects.create(user=user, preferred_name="Dani")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, 'aria-label="Account menu for Dani"')
+        self.assertContains(response, f'href="{reverse("learners:profile")}"')
+        self.assertContains(response, f'<form method="post" action="{reverse("accounts:logout")}">')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        self.assertNotContains(response, "signin-link")
+
+    def test_username_is_used_without_creating_a_profile(self) -> None:
+        user = User.objects.create_user("noprofile", "np@example.com", "pass-12345-word")
+        self.client.force_login(user)
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Account menu for noprofile")
+        self.assertFalse(LearnerProfile.objects.exists())
+
+    def test_demo_progress_is_unchanged_for_signed_in_users(self) -> None:
+        user = User.objects.create_user("daniel", "daniel@example.com", "pass-12345-word")
+        self.client.force_login(user)
+        response = self.client.get(reverse("home"))
+        for text in ("31%", "XP</span> 7,840", "<dd>12 days</dd>", "Run Code"):
+            with self.subTest(text=text):
+                self.assertContains(response, text)
 
 
 class HealthViewTests(SimpleTestCase):

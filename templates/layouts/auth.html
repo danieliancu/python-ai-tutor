@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block body_class %}auth-page{% endblock %}
+{% block skip_target %}main{% endblock %}
+{% block skip_label %}Skip to main content{% endblock %}
+
+{% block body %}
+  <div class="auth-shell">
+    <header class="auth-header">
+      <a class="brand" href="{% url 'home' %}">
+        {% include "includes/brand_mark.html" with brand_id="auth" %}
+        <span class="brand__name">Python AI Tutor</span>
+      </a>
+      <div class="auth-header__actions">
+        <a class="auth-header__link" href="{% url 'home' %}">Back to home</a>
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="link-button">Sign out</button>
+          </form>
+        {% endif %}
+      </div>
+    </header>
+
+    <main id="main" class="auth-main" tabindex="-1">
+      <section class="auth-card{% block card_class %}{% endblock %}" aria-labelledby="page-title">
+        {% include "includes/messages.html" %}
+        {% block card_kicker %}{% endblock %}
+        <h1 id="page-title" class="auth-card__title">{% block card_title %}{% endblock %}</h1>
+        {% block card_intro %}{% endblock %}
+        {% block card_body %}{% endblock %}
+      </section>
+    </main>
+  </div>
+{% endblock %}

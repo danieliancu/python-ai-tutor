@@ -1,0 +1,47 @@
+{% extends "layouts/auth.html" %}
+
+{% block title %}Welcome · Python AI Tutor{% endblock %}
+{% block card_class %} auth-card--wide{% endblock %}
+{% block card_kicker %}<p class="auth-card__kicker">Getting started</p>{% endblock %}
+{% block card_title %}Welcome, {{ profile.display_name }}{% endblock %}
+
+{% block card_body %}
+  {% if form.has_worlds %}
+    <p class="auth-card__intro">Two quick choices and you're ready to start.</p>
+    <form method="post" action="{% url 'learners:onboarding' %}" class="form" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_errors.html" %}
+      {% include "includes/field.html" with field=form.preferred_name %}
+
+      <fieldset class="choice-group{% if form.world.errors %} field--invalid{% endif %}">
+        <legend class="field__label">{{ form.world.label }}</legend>
+        <div class="choice-list">
+          {% for radio in form.world %}
+            {% with world=radio.data.value.instance %}
+              <label class="choice-card" for="{{ radio.id_for_label }}">
+                {{ radio.tag }}
+                <span class="choice-card__body">
+                  <span class="choice-card__title">{{ world.title }}</span>
+                  <span class="choice-card__text">{{ world.description }}</span>
+                </span>
+              </label>
+            {% endwith %}
+          {% endfor %}
+        </div>
+        {% if form.world.errors %}
+          <div class="field__error" id="{{ form.world.auto_id }}_error">
+            {% for error in form.world.errors %}<p>{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </fieldset>
+
+      <button type="submit" class="btn-primary">Start learning</button>
+    </form>
+  {% else %}
+    <div class="empty-state" role="status">
+      <h2 class="empty-state__title">No learning paths are currently available.</h2>
+      <p>We're preparing new material. Please check back soon.</p>
+    </div>
+    <a class="btn-secondary" href="{% url 'home' %}">Back to home</a>
+  {% endif %}
+{% endblock %}

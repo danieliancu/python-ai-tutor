@@ -1,0 +1,9 @@
+{% if form.errors %}
+  <div class="form-errors" role="alert">
+    {% if form.non_field_errors %}
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    {% else %}
+      <p>Please correct the highlighted {{ form.errors|length|pluralize:"field,fields" }} below.</p>
+    {% endif %}
+  </div>
+{% endif %}

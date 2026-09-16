@@ -10,7 +10,7 @@
 
   <div class="app">
     <header class="topbar">
-      <details class="menu">
+      <details class="menu" data-menu>
         <summary class="icon-btn menu__trigger" aria-label="Menu">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </summary>
@@ -26,16 +26,7 @@
       </details>
 
       <a class="brand" href="{% url 'home' %}">
-        <span class="brand__mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" width="32" height="32">
-            <defs>
-              <linearGradient id="brand-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient>
-            </defs>
-            <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#brand-a)"/>
-            <path d="M9 12.5 5.5 16 9 19.5M23 12.5l3.5 3.5-3.5 3.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="16" cy="16" r="3.6" fill="#fbbf24"/>
-          </svg>
-        </span>
+        {% include "includes/brand_mark.html" %}
         <span class="brand__name">Python AI Tutor</span>
       </a>
 
@@ -63,9 +54,27 @@
         </li>
       </ul>
 
-      <span class="avatar avatar--user" role="img" aria-label="Your profile">
-        <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="15.5" r="6.5" fill="#fff" fill-opacity=".92"/><path d="M8 34c1.6-7 6.3-10 12-10s10.4 3 12 10" fill="#fff" fill-opacity=".92"/></svg>
-      </span>
+      {% if user.is_authenticated %}
+        <details class="account-menu" data-menu>
+          <summary class="account-menu__trigger" aria-label="Account menu for {{ account_name }}">
+            <span class="avatar avatar--user" aria-hidden="true">
+              <svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="15.5" r="6.5" fill="#fff" fill-opacity=".92"/><path d="M8 34c1.6-7 6.3-10 12-10s10.4 3 12 10" fill="#fff" fill-opacity=".92"/></svg>
+            </span>
+          </summary>
+          <div class="menu__panel account-menu__panel">
+            <p class="account-menu__name">Signed in as <strong>{{ account_name }}</strong></p>
+            <ul>
+              <li><a href="{% url 'learners:profile' %}">Your profile</a></li>
+            </ul>
+            <form method="post" action="{% url 'accounts:logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="account-menu__logout">Sign out</button>
+            </form>
+          </div>
+        </details>
+      {% else %}
+        <a class="signin-link" href="{% url 'accounts:login' %}">Sign in</a>
+      {% endif %}
     </header>
 
     <div class="shell">
@@ -302,18 +311,26 @@
             (open ? "Hide" : "Show") + " progress details";
         });
       }
-      // Menu: close with Escape or after choosing a link.
-      var menu = document.querySelector(".menu");
-      if (!menu) return;
-      var trigger = menu.querySelector("summary");
+      // Top-bar menus: close with Escape, on outside click, or after choosing a link.
+      var menus = Array.prototype.slice.call(document.querySelectorAll("details[data-menu]"));
       document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape" && menu.open) {
-          menu.open = false;
-          trigger.focus();
-        }
+        if (event.key !== "Escape") return;
+        menus.forEach(function (menu) {
+          if (menu.open) {
+            menu.open = false;
+            menu.querySelector("summary").focus();
+          }
+        });
       });
-      menu.addEventListener("click", function (event) {
-        if (event.target.closest("a")) menu.open = false;
+      document.addEventListener("click", function (event) {
+        menus.forEach(function (menu) {
+          if (menu.open && !menu.contains(event.target)) menu.open = false;
+        });
+      });
+      menus.forEach(function (menu) {
+        menu.addEventListener("click", function (event) {
+          if (event.target.closest("a")) menu.open = false;
+        });
       });
     })();
   </script>

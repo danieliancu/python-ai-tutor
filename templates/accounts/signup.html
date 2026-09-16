@@ -1,0 +1,18 @@
+{% extends "layouts/auth.html" %}
+
+{% block title %}Create your account · Python AI Tutor{% endblock %}
+{% block card_title %}Create your account{% endblock %}
+{% block card_intro %}<p class="auth-card__intro">Start learning with a personal tutor. It takes less than a minute.</p>{% endblock %}
+
+{% block card_body %}
+  <form method="post" action="{% url 'accounts:signup' %}" class="form" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_errors.html" %}
+    {% include "includes/field.html" with field=form.username %}
+    {% include "includes/field.html" with field=form.email %}
+    {% include "includes/field.html" with field=form.password1 %}
+    {% include "includes/field.html" with field=form.password2 %}
+    <button type="submit" class="btn-primary">Create account</button>
+  </form>
+  <p class="auth-card__footer">Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+{% endblock %}

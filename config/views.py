@@ -3,6 +3,8 @@ from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
+from apps.learners.models import LearnerProfile
+
 # Static demo content for the Phase 1 product shell. Presentation only: nothing here is
 # persisted or calculated. Real progress, curriculum and tutor data arrive in later phases.
 DEMO_PROGRESS = {
@@ -65,8 +67,21 @@ def home(request: HttpRequest) -> HttpResponse:
         "skills": DEMO_SKILLS,
         "lesson": DEMO_LESSON,
         "quote": DEMO_QUOTE,
+        "account_name": _account_name(request),
     }
     return render(request, "home.html", context)
+
+
+def _account_name(request: HttpRequest) -> str:
+    """How the top bar greets a signed-in user. Reads the profile without creating one."""
+    if not request.user.is_authenticated:
+        return ""
+    preferred = (
+        LearnerProfile.objects.filter(user=request.user)
+        .values_list("preferred_name", flat=True)
+        .first()
+    )
+    return preferred or request.user.get_username()
 
 
 @never_cache

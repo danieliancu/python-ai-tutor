@@ -1,0 +1,53 @@
+{% extends "layouts/auth.html" %}
+
+{% block title %}Your profile · Python AI Tutor{% endblock %}
+{% block card_class %} auth-card--wide{% endblock %}
+{% block card_kicker %}<p class="auth-card__kicker">Account</p>{% endblock %}
+{% block card_title %}Your profile{% endblock %}
+
+{% block card_body %}
+  <dl class="summary-list">
+    <div><dt>Username</dt><dd>{{ user.get_username }}</dd></div>
+    <div><dt>Email</dt><dd>{{ user.email|default:"Not set" }}</dd></div>
+    <div>
+      <dt>Onboarding</dt>
+      <dd>
+        {% if profile.has_completed_onboarding %}
+          Completed {{ profile.onboarding_completed_at|date:"j M Y" }}
+        {% else %}
+          Not finished · <a href="{% url 'learners:onboarding' %}">Finish setting up</a>
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+
+  <section class="profile-section" aria-labelledby="details-title">
+    <h2 id="details-title" class="profile-section__title">Your details</h2>
+    <form method="post" action="{% url 'learners:profile' %}" class="form" novalidate>
+      {% csrf_token %}
+      {% include "includes/form_errors.html" %}
+      {% include "includes/field.html" with field=form.preferred_name %}
+      {% include "includes/field.html" with field=form.timezone %}
+      <button type="submit" class="btn-primary btn-primary--inline">Save changes</button>
+    </form>
+  </section>
+
+  <section class="profile-section" aria-labelledby="enrollments-title">
+    <h2 id="enrollments-title" class="profile-section__title">Learning paths</h2>
+    {% if enrollments %}
+      <ul class="enrollment-list">
+        {% for enrollment in enrollments %}
+          <li class="enrollment">
+            <div>
+              <p class="enrollment__title">{{ enrollment.world.title }}</p>
+              <p class="enrollment__meta">Enrolled {{ enrollment.enrolled_at|date:"j M Y" }}</p>
+            </div>
+            <span class="status-badge status-badge--{{ enrollment.status }}"><span class="visually-hidden">Status: </span>{{ enrollment.get_status_display }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="profile-section__empty">You haven't chosen a learning path yet. <a href="{% url 'learners:onboarding' %}">Choose one</a></p>
+    {% endif %}
+  </section>
+{% endblock %}
