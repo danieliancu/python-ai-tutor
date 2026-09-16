@@ -2,15 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Cursuri Python{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="{% block meta_description %}Learn Python step by step with a personal AI tutor.{% endblock %}">
+  <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121413" media="(prefers-color-scheme: dark)">
+  <title>{% block title %}Python AI Tutor{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+<body class="{% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a class="skip-link" href="#{% block skip_target %}content{% endblock %}">{% block skip_label %}Skip to content{% endblock %}</a>
+  {% block header %}{% endblock %}
+  {% block body %}
+    <main id="content" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+  {% endblock %}
+  {% block footer %}{% endblock %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Cursuri Python
 
-This is the Django foundation for a SaaS product. It is Phase 0: project structure, configuration, a custom user model, admin, a homepage and a health check. It has no product features yet.
+This is the Django foundation for a SaaS product: a Python tutor with a personal AI tutor. Phase 0 set up the project structure, configuration, a custom user model, admin and a health check. Phase 1 adds the product shell, a static demo of the learning interface on the homepage. It is presentation only. The progress, skill map, lesson, editor and tutor content are placeholder data, and there is no authentication, curriculum, AI or code execution yet.
 
 ## Stack
 
@@ -50,7 +50,7 @@ python manage.py runserver
 
 Once the server is running, these URLs are available:
 
-- http://127.0.0.1:8000/: homepage ("The application is running.")
+- http://127.0.0.1:8000/: homepage, the static learning-interface demo (product shell)
 - http://127.0.0.1:8000/health/: returns `{"status": "ok"}`
 - http://127.0.0.1:8000/admin/: Django admin
 

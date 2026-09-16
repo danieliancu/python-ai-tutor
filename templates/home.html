@@ -1,6 +1,151 @@
 {% extends "base.html" %}
 
-{% block content %}
-  <h1>Cursuri Python</h1>
-  <p>The application is running.</p>
+{% block title %}{{ lesson.skill }} · Python AI Tutor{% endblock %}
+{% block body_class %}shell{% endblock %}
+{% block skip_target %}lesson{% endblock %}
+{% block skip_label %}Skip to lesson{% endblock %}
+
+{% block header %}
+  <header class="app-bar">
+    <div class="app-bar__inner">
+      <details class="menu">
+        <summary class="menu__trigger" aria-label="Open menu">
+          <span class="menu__icon" aria-hidden="true"></span>
+          <span class="menu__label">Menu</span>
+        </summary>
+        <nav class="menu__panel" aria-label="Main">
+          <ul>
+            <li><a href="#lesson">Current lesson</a></li>
+            <li><a href="#progress">Your progress</a></li>
+            <li><a href="#skill-map">Skill map</a></li>
+          </ul>
+        </nav>
+      </details>
+
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__mark" aria-hidden="true">py</span>
+        <span class="brand__name">Python AI Tutor</span>
+      </a>
+
+      <ul class="chips" aria-label="Progress summary">
+        <li class="chip chip--streak"><span aria-hidden="true">🔥</span> {{ progress.streak_days }}<span class="chip__unit"> days</span></li>
+        <li class="chip chip--level">Level {{ progress.level }}</li>
+        <li class="chip chip--xp">{{ progress.xp }} XP</li>
+      </ul>
+    </div>
+  </header>
+{% endblock %}
+
+{% block body %}
+  <div class="workspace">
+    <main id="lesson" class="canvas" tabindex="-1" aria-labelledby="lesson-title">
+      <div class="lesson-head">
+        <p class="eyebrow">
+          <span class="eyebrow__skill">{{ lesson.skill }}</span>
+          <span aria-hidden="true">·</span>
+          Exercise {{ lesson.step }} of {{ lesson.total_steps }}
+        </p>
+        <div class="lesson-progress">
+          <progress max="100" value="{{ lesson_percent }}" aria-label="Lesson progress: exercise {{ lesson.step }} of {{ lesson.total_steps }}">{{ lesson_percent }}%</progress>
+        </div>
+        <h1 id="lesson-title">{{ lesson.title }}</h1>
+        <p class="lesson-instruction">{{ lesson.instruction }}</p>
+      </div>
+
+      <section class="editor" aria-labelledby="editor-title" aria-describedby="editor-note">
+        <div class="editor__bar">
+          <h2 id="editor-title" class="editor__title">main.py</h2>
+          <span id="editor-note" class="editor__note">Preview · editor coming soon</span>
+        </div>
+        <pre class="editor__code"><code>{% for line in lesson.code_lines %}<span class="code-line{% if forloop.counter == lesson.highlight_line %} code-line--flag{% endif %}">{{ line }}</span>
+{% endfor %}</code></pre>
+      </section>
+
+      <aside class="tutor" aria-labelledby="tutor-title">
+        <span class="tutor__avatar" aria-hidden="true"></span>
+        <div class="tutor__body">
+          <h2 id="tutor-title" class="tutor__name">AI Tutor</h2>
+          <p class="tutor__hint">{{ lesson.tutor_hint }}</p>
+          <p class="tutor__detail">{{ lesson.tutor_detail }}</p>
+        </div>
+      </aside>
+
+      <div class="action-bar">
+        <button type="button" class="btn-continue" aria-describedby="continue-note">CONTINUE</button>
+        <p id="continue-note" class="action-bar__note">Demo preview: checking your answer arrives in a later release.</p>
+      </div>
+    </main>
+
+    <aside id="progress" class="rail" aria-labelledby="progress-title">
+      <details class="rail__details" open>
+        <summary class="rail__summary">
+          <span>Your progress</span>
+          <span class="rail__summary-meta">{{ progress.mastery }}% mastery · {{ progress.current_skill }}</span>
+        </summary>
+
+        <div class="rail__content">
+          <h2 id="progress-title" class="rail__heading">Your progress</h2>
+
+          <div class="mastery">
+            <p class="mastery__label">
+              <span>Python Mastery</span>
+              <strong class="mastery__value">{{ progress.mastery }}%</strong>
+            </p>
+            <progress max="100" value="{{ progress.mastery }}" aria-label="Python Mastery">{{ progress.mastery }}%</progress>
+          </div>
+
+          <dl class="stats">
+            <div><dt>Level</dt><dd>{{ progress.level }}</dd></div>
+            <div><dt>XP</dt><dd>{{ progress.xp }}</dd></div>
+            <div><dt>Streak</dt><dd>{{ progress.streak_days }} days</dd></div>
+            <div><dt>Current skill</dt><dd>{{ progress.current_skill }}</dd></div>
+          </dl>
+
+          <nav id="skill-map" class="skill-map" aria-label="Skill map">
+            <h2 class="rail__heading">Skill map</h2>
+            <ol>
+              {% for skill in skills %}
+                <li class="skill" data-state="{{ skill.state }}"{% if skill.current %} aria-current="step"{% endif %}>
+                  <span class="skill__icon" aria-hidden="true">{{ skill.icon }}</span>
+                  <span class="skill__name">{{ skill.name }}</span>
+                  <span class="skill__status">{% if skill.current %}<span class="skill__current">Current · </span>{% endif %}{{ skill.status|upper }}</span>
+                </li>
+              {% endfor %}
+            </ol>
+          </nav>
+        </div>
+      </details>
+    </aside>
+  </div>
+{% endblock %}
+
+{% block footer %}
+  <footer class="site-footer">
+    <p>Demo preview · The application is running.</p>
+  </footer>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    (function () {
+      // Collapse secondary progress on small screens; without JS it simply stays open.
+      var rail = document.querySelector(".rail__details");
+      if (rail && window.matchMedia("(max-width: 639px)").matches) {
+        rail.open = false;
+      }
+      // Close the menu with Escape and when a menu link is chosen.
+      var menu = document.querySelector(".menu");
+      if (!menu) return;
+      var trigger = menu.querySelector("summary");
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && menu.open) {
+          menu.open = false;
+          trigger.focus();
+        }
+      });
+      menu.addEventListener("click", function (event) {
+        if (event.target.closest("a")) menu.open = false;
+      });
+    })();
+  </script>
 {% endblock %}

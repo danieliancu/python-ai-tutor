@@ -1,16 +1,934 @@
-/* Minimal placeholder styles. Final product UI is not designed yet. */
+/* Python AI Tutor — Phase 1 product shell.
+   One calm learning canvas, a quiet progress rail, a single dominant action. */
+
+/* --- Tokens ------------------------------------------------------------------ */
+
 :root {
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
+
+  --bg: #f7f6f2;
+  --bg-raised: #efede7;
+  --text: #1b1d1c;
+  --text-muted: #5b605d;
+  --hairline: #e2dfd7;
+  --accent: #0c6e51;
+  --accent-soft: #dcefe6;
+  --accent-contrast: #ffffff;
+  --warn: #8a5a00;
+  --warn-soft: #f6ead2;
+  --locked: #767b78;
+  --focus: #1f5fd6;
+
+  --code-bg: #15181a;
+  --code-bar: #1d2124;
+  --code-text: #e4e7e5;
+  --code-muted: #7d8783;
+  --code-flag: rgba(240, 180, 60, 0.14);
+  --code-flag-edge: #e0a93a;
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+
+  --radius-sm: 0.5rem;
+  --radius: 0.875rem;
+  --radius-lg: 1.25rem;
+  --gutter: clamp(1rem, 4vw, 3rem);
+
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121413;
+    --bg-raised: #1a1d1c;
+    --text: #eceeed;
+    --text-muted: #a4aba7;
+    --hairline: #2a2e2c;
+    --accent: #5fd3a8;
+    --accent-soft: #173a2e;
+    --accent-contrast: #06140e;
+    --warn: #f0c060;
+    --warn-soft: #3a2e14;
+    --locked: #8d938f;
+    --focus: #8ab4ff;
+
+    --code-bg: #0b0d0d;
+    --code-bar: #151817;
+  }
+}
+
+/* --- Base -------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
-  max-width: 48rem;
+  display: block;
+}
+
+main:focus {
+  outline: none;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* --- App bar ----------------------------------------------------------------- */
+
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+}
+
+.app-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 80rem;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0.9rem var(--gutter);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Menu: native disclosure, works without JavaScript. */
+.menu {
+  position: relative;
+}
+
+.menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.75rem 0 0.5rem;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.menu__trigger::-webkit-details-marker {
+  display: none;
+}
+
+.menu__trigger:hover,
+.menu[open] .menu__trigger {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.menu__icon,
+.menu__icon::before,
+.menu__icon::after {
+  display: block;
+  width: 1.1rem;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.menu__icon {
+  position: relative;
+  margin-left: 0.35rem;
+}
+
+.menu__icon::before,
+.menu__icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.menu__icon::before {
+  top: -6px;
+}
+
+.menu__icon::after {
+  top: 6px;
+}
+
+.menu__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 14rem;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 18px 40px -16px rgba(0, 0, 0, 0.25);
+}
+
+.menu__panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu__panel a {
+  display: block;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.menu__panel a:hover {
+  background: var(--bg-raised);
+}
+
+/* Progress chips */
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chip--streak {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --- Workspace layout -------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17.5rem;
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: start;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem) var(--gutter) 3rem;
+}
+
+/* --- Learning canvas --------------------------------------------------------- */
+
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+}
+
+.lesson-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 44rem;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.eyebrow__skill {
+  color: var(--accent);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.lesson-instruction {
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  max-width: 38rem;
+}
+
+/* Progress bars (lesson + mastery) */
+progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hairline);
+  color: var(--accent);
+  overflow: hidden;
+  appearance: none;
+}
+
+progress::-webkit-progress-bar {
+  background: var(--hairline);
+  border-radius: 999px;
+}
+
+progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+progress::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.lesson-progress {
+  max-width: 14rem;
+}
+
+.lesson-progress progress {
+  height: 4px;
+}
+
+/* Editor placeholder */
+.editor {
+  border-radius: var(--radius-lg);
+  background: var(--code-bg);
+  color: var(--code-text);
+  overflow: hidden;
+  box-shadow: 0 30px 60px -40px rgba(0, 0, 0, 0.55);
+}
+
+.editor__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--code-bar);
+}
+
+.editor__title {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.editor__note {
+  color: var(--code-muted);
+  font-size: 0.8rem;
+}
+
+.editor__code {
+  margin: 0;
+  padding: 1.5rem 0;
+  min-height: 15rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1.85;
+  counter-reset: line;
+  tab-size: 4;
+}
+
+.code-line {
+  display: inline-block;
+  min-width: 100%;
+  padding-right: 1.5rem;
+  counter-increment: line;
+}
+
+.code-line::before {
+  content: counter(line);
+  display: inline-block;
+  width: 3.5rem;
+  padding-right: 1.25rem;
+  color: var(--code-muted);
+  text-align: right;
+  user-select: none;
+}
+
+.code-line--flag {
+  background: var(--code-flag);
+  box-shadow: inset 3px 0 0 var(--code-flag-edge);
+}
+
+/* AI tutor placeholder */
+.tutor {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  max-width: 40rem;
+}
+
+.tutor__avatar {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, #ffffff66 0 18%, transparent 19%),
+    linear-gradient(135deg, var(--accent), #2f9fd0);
+}
+
+.tutor__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tutor__name {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tutor__hint {
+  font-size: 1.15rem;
+  font-weight: 550;
+}
+
+.tutor__detail {
+  color: var(--text-muted);
+}
+
+/* Primary action */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
+}
+
+.btn-continue {
+  min-width: 15rem;
+  min-height: 3.6rem;
+  padding: 0 2.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--accent) 80%, transparent);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.btn-continue:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--accent) 90%, transparent);
+}
+
+.btn-continue:active {
+  transform: translateY(1px);
+}
+
+.btn-continue:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+
+.action-bar__note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  max-width: 20rem;
+}
+
+/* --- Progress rail ----------------------------------------------------------- */
+
+.rail {
+  position: sticky;
+  top: 5.5rem;
+  color: var(--text-muted);
+}
+
+.rail__summary {
+  display: none;
+}
+
+.rail__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.rail__heading {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mastery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mastery__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--text);
+  font-weight: 550;
+}
+
+.mastery__value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+  margin: 0;
+}
+
+.stats dt {
+  font-size: 0.8rem;
+}
+
+.stats dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.skill-map ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  margin: 0 -0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+}
+
+.skill__icon {
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.skill__name {
+  color: var(--text);
+}
+
+.skill__status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.skill[data-state="mastered"] .skill__icon {
+  color: var(--accent);
+}
+
+.skill[data-state="practising"] .skill__icon,
+.skill[data-state="practising"] .skill__status {
+  color: var(--warn);
+}
+
+.skill[data-state="locked"] .skill__name,
+.skill[data-state="locked"] .skill__icon,
+.skill[data-state="locked"] .skill__status {
+  color: var(--locked);
+}
+
+.skill[aria-current="step"] {
+  background: var(--accent-soft);
+}
+
+.skill[aria-current="step"] .skill__name {
+  font-weight: 700;
+}
+
+.skill[aria-current="step"] .skill__icon,
+.skill[aria-current="step"] .skill__status {
+  color: var(--accent);
+}
+
+/* --- Footer ------------------------------------------------------------------ */
+
+.site-footer {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1.5rem var(--gutter) 2rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* --- Tablet: single column, progress becomes a strip under the lesson ------- */
+
+@media (max-width: 1023px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem;
+  }
+
+  .rail {
+    position: static;
+    padding-top: 2rem;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .rail__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 1.5rem 3rem;
+  }
+
+  .rail__content > .rail__heading {
+    grid-column: 1 / -1;
+  }
+
+  .stats {
+    grid-template-columns: repeat(4, auto);
+    justify-content: space-between;
+    align-self: center;
+  }
+
+  .skill-map {
+    grid-column: 1 / -1;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .skill-map ol {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.25rem;
+  }
+
+  .skill {
+    flex: 0 0 auto;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    column-gap: 0.5rem;
+    row-gap: 0.1rem;
+    margin: 0;
+    padding: 0.7rem 1rem;
+    background: var(--bg-raised);
+    scroll-snap-align: start;
+  }
+
+  .skill__status {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 800px) {
+  .rail__content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stats {
+    justify-content: start;
+    gap: 1rem 2rem;
+  }
+}
+
+/* --- Mobile: lesson first, sticky CONTINUE, progress collapsed --------------- */
+
+@media (max-width: 639px) {
+  .app-bar__inner {
+    gap: 0.5rem;
+    padding-block: 0.6rem;
+  }
+
+  .menu__label,
+  .brand__name,
+  .chip--xp,
+  .chip__unit {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .menu__trigger {
+    padding: 0 0.5rem;
+  }
+
+  .chip {
+    padding-inline: 0.5rem;
+  }
+
+  .workspace {
+    gap: 1.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .canvas {
+    gap: 1.5rem;
+  }
+
+  .lesson-instruction {
+    font-size: 1rem;
+  }
+
+  .editor {
+    margin-inline: calc(var(--gutter) * -1);
+    border-radius: 0;
+  }
+
+  .editor__bar {
+    padding-inline: var(--gutter);
+  }
+
+  .editor__code {
+    min-height: 0;
+    padding: 1rem 0;
+    font-size: 0.875rem;
+  }
+
+  .code-line::before {
+    width: 2.5rem;
+    padding-right: 0.9rem;
+  }
+
+  .tutor__hint {
+    font-size: 1.05rem;
+  }
+
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    margin-inline: calc(var(--gutter) * -1);
+    padding: 0.75rem var(--gutter) calc(0.75rem + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 75%, transparent);
+  }
+
+  .btn-continue {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .action-bar__note {
+    max-width: none;
+    text-align: center;
+    font-size: 0.75rem;
+  }
+
+  /* Secondary progress collapses into a disclosure. */
+  .rail {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .rail__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--text);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .rail__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .rail__summary::after {
+    content: "▾";
+    color: var(--text-muted);
+    transition: transform 150ms ease;
+  }
+
+  .rail__details[open] .rail__summary::after {
+    transform: rotate(180deg);
+  }
+
+  .rail__summary > span {
+    white-space: nowrap;
+  }
+
+  .rail__summary-meta {
+    min-width: 0;
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .rail__content {
+    padding: 1.5rem 0.25rem 0;
+  }
+
+  .rail__content > .rail__heading {
+    display: none;
+  }
+
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .skill-map ol {
+    display: block;
+  }
+
+  .skill {
+    grid-template-columns: 1.25rem 1fr auto;
+    grid-template-rows: auto;
+    margin: 0 -0.6rem;
+    padding: 0.6rem;
+    background: none;
+  }
+
+  .skill__status {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .btn-continue {
+    border: 2px solid ButtonText;
+  }
+
+  .skill[aria-current="step"] {
+    outline: 2px solid Highlight;
+  }
 }
