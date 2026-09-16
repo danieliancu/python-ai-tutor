@@ -17,8 +17,17 @@ Phase 2B adds learner accounts:
 - enrollments: a learner can be enrolled in any number of Worlds
 - an account menu on the homepage and admin for profiles and enrollments
 
-**Available:** curriculum data, learner accounts, profiles and World enrollment.
-**Not yet implemented:** learner progress, exercises, code execution, mastery and the AI tutor. Enrollment records which Worlds a learner joined, not how far they got. The homepage progress figures are still Phase 1 demo content.
+Phase 3 adds a domain-neutral Exercise Engine. An `Exercise` belongs to a Lesson and works the same way for any subject (Python now; languages or maths later). Two separate fields describe it:
+
+- `response_type`: how the learner answers (`code`, `multiple_choice`, `fill_gap`, `text`, `translation`, `numeric`, `math_expression`, `speaking`, `listening`)
+- `learning_mode`: which cognitive level it trains (`recognise`, `complete`, `fix`, `create`)
+
+For example: `code` + `fix` (debug a program), `translation` + `create` (translate a sentence), `multiple_choice` + `recognise` (pick the right keyword).
+
+`content` holds what the learner sees and is validated so it never contains answers. `evaluation_spec` holds the private answer configuration for the future evaluation engine; it is never included in `exercise_presentation()` or any template. Learners only reach exercises whose whole curriculum chain is published, in Worlds where their enrollment is active or completed (`apps/exercises/access.py`).
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment and exercise definitions (editable in the admin).
+**Not yet implemented:** answer evaluation, attempts, a code runner, learner progress, mastery and the AI tutor. No exercises are seeded yet; the Python exercise pack comes next. The homepage progress figures are still Phase 1 demo content.
 
 ## Stack
 
@@ -36,6 +45,7 @@ config/          Django project: settings, URLs, WSGI/ASGI, env helpers, root vi
 apps/accounts/   Custom user model (AUTH_USER_MODEL = "accounts.User"), signup/login/password reset
 apps/curriculum/ Curriculum models, admin, selectors, seed data and seed_curriculum command
 apps/learners/   Learner profiles, World enrollment, onboarding and the profile page
+apps/exercises/  Exercise model, content validation, safe presentation, selectors and access rules
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
