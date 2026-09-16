@@ -45,8 +45,23 @@ Phase 4P adds isolated execution for Python code exercises (`apps/python_runner/
 
 Expected outputs, return values and reference solutions never enter the container. If Docker is unavailable, code answers get a safe "can't be checked right now" error and are never marked wrong. There is no local fallback. The runner is stateless and nothing is saved yet.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), in-memory answer evaluation and isolated Python execution (backend only).
-**Not yet implemented:** saving attempts, AI evaluation, learner progress, mastery, the AI tutor and any page or API that runs code. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 5 adds persistent learner history (`apps/attempts/`):
+
+- `ExerciseAttempt`: one submission, linked to the learner's `Enrollment` and the `Exercise`, numbered 1, 2, 3… per learner and exercise. It stores the learner's own answer, the evaluation outcome (`correct`, `incorrect`, `invalid`, `review_required`, `unsupported` or `unavailable`), score, a safe message and reason codes, plus hint level, explanation/solution use and time taken.
+- `AttemptMistake`: safe mistake codes extracted from the result (e.g. `wrong_option`, `output_mismatch`, `runtime_error` with the exception class).
+- Answers are evaluated with the existing engine. If evaluation infrastructure fails, the attempt is stored as `unavailable`, never as incorrect.
+- Correct options, accepted answers, expected values, tests and reference solutions are never stored with attempts or returned.
+
+Authenticated JSON endpoints (session login and CSRF token required):
+
+- `POST /app/exercises/<id>/attempts/` with `{"answer": …, "hint_level": 0, "used_explanation": false, "used_solution": false, "duration_seconds": 94}` (all but `answer` optional) → `201` with the attempt
+- `GET /app/exercises/<id>/attempts/` → your latest 50 attempts for that exercise, newest first
+- `GET /app/attempts/<id>/` → one of your attempts, including your submitted answer
+
+Only learners with an active or completed enrollment can use them, and only for exercises that are currently published.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution and saved attempt history.
+**Not yet implemented:** mastery, progress, review scheduling, AI feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -68,6 +83,7 @@ apps/exercises/  Exercise model, validation, safe presentation, selectors, acces
                  Python Foundations exercise pack (data/ + seed_python_exercises command)
 apps/evaluation/ Evaluation engine: result type, evaluator registry and evaluators
 apps/python_runner/ Docker-isolated Python execution and the Python code evaluator
+apps/attempts/   Learner attempt history, mistake codes and the attempt JSON endpoints
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```

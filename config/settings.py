@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.exercises",
     "apps.evaluation",
     "apps.python_runner",
+    "apps.attempts",
 ]
 
 MIDDLEWARE = [

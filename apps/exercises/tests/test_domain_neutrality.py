@@ -98,7 +98,8 @@ class DomainNeutralityTests(TestCase):
         )
 
     def test_model_has_no_subject_specific_fields(self) -> None:
-        names = {field.name for field in Exercise._meta.get_fields()}
+        # The model's own columns (reverse relations from other apps don't count).
+        names = {field.name for field in Exercise._meta.get_fields() if field.concrete}
         self.assertEqual(
             names,
             {
