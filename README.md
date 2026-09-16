@@ -1,6 +1,8 @@
 # Cursuri Python
 
-This is the Django foundation for a SaaS product. It is Phase 0: project structure, configuration, a custom user model, admin, a homepage and a health check. It has no product features yet.
+This is the Django foundation for a SaaS product. Phase 1 adds learner account creation,
+login, logout, and password reset on top of the Phase 0 project foundation. Course and tutor
+features belong to later phases and are not included yet.
 
 ## Stack
 
@@ -53,6 +55,8 @@ Once the server is running, these URLs are available:
 - http://127.0.0.1:8000/: homepage ("The application is running.")
 - http://127.0.0.1:8000/health/: returns `{"status": "ok"}`
 - http://127.0.0.1:8000/admin/: Django admin
+- http://127.0.0.1:8000/accounts/signup/: learner registration
+- http://127.0.0.1:8000/accounts/login/: login and password reset
 
 ## Configuration
 

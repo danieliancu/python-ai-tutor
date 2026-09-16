@@ -89,6 +89,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Authentication -----------------------------------------------------------
 
 AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

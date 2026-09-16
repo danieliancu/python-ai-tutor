@@ -14,3 +14,15 @@ main {
   margin: 0 auto;
   padding: 2rem 1rem;
 }
+
+.site-header { border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+nav, .account-links { display: flex; align-items: center; gap: 1rem; }
+nav { max-width: 48rem; margin: 0 auto; padding: 1rem; justify-content: space-between; }
+.brand { font-weight: 700; }
+.account-links form { margin: 0; }
+.link-button { background: none; border: 0; color: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+.auth-card { max-width: 28rem; margin: 2rem auto; }
+.auth-card label { display: block; font-weight: 600; }
+.auth-card input { box-sizing: border-box; max-width: 100%; padding: 0.5rem; width: 100%; }
+.auth-card .helptext { display: block; font-size: 0.875rem; }
+.error, .errorlist { color: #b42318; }

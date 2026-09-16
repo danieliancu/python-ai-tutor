@@ -8,6 +8,23 @@
   <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <header class="site-header">
+    <nav aria-label="Main navigation">
+      <a class="brand" href="{% url 'home' %}">Cursuri Python</a>
+      <div class="account-links">
+        {% if user.is_authenticated %}
+          <span>Signed in as <strong>{{ user.username }}</strong></span>
+          <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button class="link-button" type="submit">Log out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Log in</a>
+          <a href="{% url 'accounts:signup' %}">Create account</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
   <main>
     {% block content %}{% endblock %}
   </main>
