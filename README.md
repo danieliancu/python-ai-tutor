@@ -148,8 +148,28 @@ Phase 8P hardens the tutor and adds Python-specific teaching.
 - **Leak guard.** Before the solution stage, a reply that reproduces the reference solution is rejected and never stored.
 - **Not yet built:** the Course Player (learner interface).
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates), misconception detection, next-best-action decisions and the AI tutor API with Python-specific teaching.
-**Not yet implemented:** gamification and a learner interface for exercises (the Course Player). The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 8B turns the existing product shell into the real **Course Player** (`apps/course_player/`). The design is deliberately unchanged: same layout, colours, typography and responsive behaviour. Only real data and working controls were added.
+
+Learner flow: sign in → `/` sends you to your course (`/learn/worlds/<id>/`, your first active enrollment) → the exercise chosen by Next Best Action is shown → answer it → **Run Code** / **Check answer** (or <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Enter</kbd>) → deterministic feedback in the Output panel → mastery, skill map and **Next Up** refresh → ask the AI Tutor → **Continue** opens the next recommended exercise.
+
+**The page**
+
+- **Exercise types.** Code (an editable editor with Reset), multiple choice, fill the gap, numeric and text answers all appear inside the existing exercise card.
+- **Recording answers.** Every Run/Check records an attempt through `POST /app/exercises/<id>/attempts/` (with the time spent). The Output panel shows only safe feedback: the result, the evaluator's message and the error type. Hidden tests, expected output and solutions never reach the page.
+- **Data shown.** Signed-in learners see only real data: mastery (the average over published concepts), the current skill, and a skill map derived from learner state. XP, streak and level show neutral placeholders until gamification exists.
+- **After an answer.** The page refreshes the left panel from `GET /learn/worlds/<id>/progress/` (a server-rendered fragment, so lock and progress states stay server-side) and Next Up from `GET /app/worlds/<id>/next-action/`.
+
+**AI Tutor panel**
+
+- Shows your recent conversation.
+- Plain text is a question.
+- `/hint`, `/explain`, `/solution` and `/next` ask for help or the next step. The server decides the help level.
+- If the tutor is unavailable, exercises keep working.
+- Practice, Projects, Community, search and the feedback thumbs stay inactive.
+- Signed-out visitors still see the static demo.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state, misconception detection, next-best-action decisions, the AI tutor with Python-specific teaching and the browser Course Player.
+**Not yet implemented:** gamification (XP, streaks, levels), Practice, Projects, Community, search, voice, streaming replies and billing.
 
 ## Stack
 
@@ -177,11 +197,12 @@ apps/learner_intelligence/ Derived learner state (mastery, retention, review), S
 apps/misconceptions/ Misconception catalog, detectors (generic + Python), derived evidence/state
                  and the rebuild_misconceptions command
 apps/next_action/ Deterministic next-best-action engine and its read-only JSON endpoint
+apps/course_player/ The learner Course Player: real data and interactions for the product shell
 apps/ai_tutor/    AI tutor: context builder, help ladder, providers (OpenAI, fake), domain
                  adapters (domains/python), assistance reconstruction,
                  conversation history and the tutor JSON endpoints
 templates/       Project-level templates
-static/          Project-level static files (css/, vendor/htmx.min.js)
+static/          Project-level static files (css/, js/course_player.js, vendor/htmx.min.js)
 ```
 
 ## Local setup
@@ -211,6 +232,35 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
+
+### Running the full learning experience
+
+1. Copy the example settings: `cp .env.example .env` (Windows: `copy .env.example .env`).
+2. Edit `.env` for the AI tutor:
+
+   ```bash
+   AI_TUTOR_ENABLED=true
+   OPENAI_API_KEY=YOUR_OPENAI_KEY
+   ```
+
+   `.env` is git-ignored; never commit a real key. With the key left empty, the tutor simply shows as unavailable.
+3. To run code exercises for real, install Docker, pull the runner image and set `PYTHON_RUNNER_BACKEND=docker` in `.env`:
+
+   ```bash
+   docker pull python:3.11-slim
+   ```
+
+   Without Docker, code answers are reported as "can't be checked automatically yet", never as wrong.
+4. Prepare the data and start the server:
+
+   ```bash
+   python manage.py migrate
+   python manage.py seed_curriculum
+   python manage.py seed_python_exercises
+   python manage.py runserver
+   ```
+
+5. Sign up, choose Python Foundations during onboarding, and you land in the Course Player.
 
 ### Curriculum and exercise data
 

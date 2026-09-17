@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ lesson.title }} · Python AI Tutor{% endblock %}
 {% block body_class %}app-page{% endblock %}
@@ -6,7 +7,7 @@
 {% block skip_label %}Skip to lesson{% endblock %}
 
 {% block body %}
-  <p id="demo-note" class="visually-hidden">Preview only. This control is not active yet.</p>
+  <p id="demo-note" class="visually-hidden">{% if player %}Not available yet.{% else %}Preview only. This control is not active yet.{% endif %}</p>
 
   <div class="app">
     <header class="topbar">
@@ -32,7 +33,7 @@
 
       <nav class="primary-nav" aria-label="Primary">
         <ul>
-          <li><a href="{% url 'home' %}" aria-current="page">Learn</a></li>
+          <li><a href="{% if player %}{{ player.config.urls.player }}{% else %}{% url 'home' %}{% endif %}" aria-current="page">Learn</a></li>
           <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Practice</button></li>
           <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Projects</button></li>
           <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Community</button></li>
@@ -49,7 +50,7 @@
         <li class="stat stat--streak"><span class="stat__icon" aria-hidden="true">🔥</span>{{ progress.streak_days }}<span class="stat__word"> days</span><span class="visually-hidden"> streak</span></li>
         <li class="stat stat--xp"><span class="stat__label">XP</span> {{ progress.xp }}</li>
         <li class="stat stat--level">
-          <svg class="stat__gauge" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#e0e9ff"/><circle cx="10" cy="10" r="5.5" fill="none" stroke="#2f6fed" stroke-width="3" pathLength="100" stroke-dasharray="70 100" transform="rotate(-90 10 10)" stroke-linecap="round"/></svg>
+          <svg class="stat__gauge" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#e0e9ff"/><circle cx="10" cy="10" r="5.5" fill="none" stroke="#2f6fed" stroke-width="3" pathLength="100" stroke-dasharray="{% if player %}0{% else %}70{% endif %} 100" transform="rotate(-90 10 10)" stroke-linecap="round"/></svg>
           <span><span class="stat__word">Level </span>{{ progress.level }}</span>
         </li>
       </ul>
@@ -90,7 +91,7 @@
             </ol>
           </nav>
           <div class="pager">
-            <span class="pager__label">Lesson {{ lesson.number }} of {{ lesson.total }}</span>
+            {% if lesson.total %}<span class="pager__label">Lesson {{ lesson.number }} of {{ lesson.total }}</span>{% endif %}
             <span class="pager__buttons">
               <button type="button" class="icon-btn icon-btn--boxed" aria-label="Previous lesson" aria-disabled="true" aria-describedby="demo-note">
                 <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="m12 5-5 5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -118,6 +119,9 @@
           </div>
         </div>
 
+        {% if player %}
+          {% include "course_player/partials/exercise.html" %}
+        {% else %}
         <section class="exercise" aria-labelledby="exercise-title">
           <div class="exercise__head">
             <span class="exercise__number" aria-hidden="true">{{ lesson.exercise_number }}</span>
@@ -169,53 +173,11 @@
 {% endfor %}<span class="console__prompt">&gt;</span> <span class="caret caret--light" aria-hidden="true"></span></samp></pre>
           </div>
         </section>
+        {% endif %}
       </main>
 
       <aside id="progress" class="side-progress" aria-labelledby="mastery-title">
-        <div class="mastery">
-          <div class="ring" aria-hidden="true">
-            <svg viewBox="0 0 120 120">
-              <defs>
-                <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc9b5"/><stop offset="1" stop-color="#3aa6a0"/></linearGradient>
-              </defs>
-              <circle cx="60" cy="60" r="50" class="ring__track"/>
-              <circle cx="60" cy="60" r="50" class="ring__value" pathLength="100" stroke-dasharray="{{ progress.mastery }} 100" transform="rotate(-90 60 60)"/>
-            </svg>
-            <span class="ring__label">{{ progress.mastery }}%</span>
-          </div>
-          <div class="mastery__text">
-            <h2 id="mastery-title" class="mastery__title">Python Mastery</h2>
-            <p class="mastery__helper mastery__helper--desktop">Keep going. You're building real skills.</p>
-            <p class="mastery__helper mastery__helper--mobile">{{ progress.mastery }}% mastery · Keep going!</p>
-          </div>
-          <button type="button" class="icon-btn mastery__toggle" aria-expanded="false" aria-controls="progress-details" hidden>
-            <span class="visually-hidden">Show progress details</span>
-            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-
-        <dl id="progress-details" class="progress-details">
-          <div class="progress-details__item progress-details__item--current"><dt>Current skill</dt><dd>{{ progress.current_skill }}</dd></div>
-          <div class="progress-details__item"><dt>Level</dt><dd>{{ progress.level }}</dd></div>
-          <div class="progress-details__item"><dt>XP</dt><dd>{{ progress.xp }}</dd></div>
-          <div class="progress-details__item"><dt>Streak</dt><dd>{{ progress.streak_days }} days</dd></div>
-        </dl>
-
-        <nav id="skill-map" class="skill-map" aria-label="Skill map">
-          <h2 class="skill-map__title">
-            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><rect x="3" y="11" width="3.2" height="6" rx="1" fill="#5cc9b5"/><rect x="8.4" y="7" width="3.2" height="10" rx="1" fill="#3aa6a0"/><rect x="13.8" y="3" width="3.2" height="14" rx="1" fill="#2f8f8a"/></svg>
-            Skill map
-          </h2>
-          <ol class="skills">
-            {% for skill in skills %}
-              <li class="skill{% if skill.extra %} skill--extra{% endif %}" data-state="{{ skill.state }}"{% if skill.current %} aria-current="step"{% endif %}>
-                <span class="skill__dot" aria-hidden="true">{% if skill.state == "mastered" %}<svg viewBox="0 0 20 20" width="12" height="12"><path d="m5 10.5 3.2 3L15 6.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endif %}</span>
-                <span class="skill__name">{{ skill.name }}</span>
-                <span class="skill__status">{% if skill.current %}<span class="visually-hidden">Current skill, </span>{% endif %}{{ skill.status|upper }}</span>
-              </li>
-            {% endfor %}
-          </ol>
-        </nav>
+        {% include "course_player/partials/progress.html" %}
 
         <figure class="quote">
           <blockquote><p>“{{ quote }}”</p></blockquote>
@@ -230,15 +192,28 @@
               <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5Z" fill="#fff"/></svg>
             </span>
             <h2 id="tutor-title" class="tutor__title">AI Tutor</h2>
-            <span class="badge">Preview</span>
+            <span class="badge">{% if player %}{% if player.tutor_available %}Beta{% else %}Offline{% endif %}{% else %}Preview{% endif %}</span>
           </div>
 
-          <div class="tutor__thread">
-            <p class="bubble bubble--hint">{{ lesson.tutor_hint }}</p>
-            {% for message in lesson.tutor_messages %}
-              <p class="bubble{% if not forloop.first %} bubble--secondary{% endif %}">{{ message }}</p>
-            {% endfor %}
-          </div>
+          {% if player %}
+            <div class="tutor__thread" role="log" aria-live="polite" aria-label="Conversation with the AI tutor" data-tutor-thread>
+              {% if player.tutor_available %}
+                <p class="bubble bubble--hint{% if player.tutor_history %} bubble--secondary{% endif %}">{{ player.tutor_intro }}</p>
+              {% else %}
+                <p class="bubble bubble--hint" data-tutor-status>{{ player.tutor_unavailable }}</p>
+              {% endif %}
+              {% for message in player.tutor_history %}
+                <p class="bubble{% if message.role == 'learner' %} bubble--learner{% endif %}{% if message.older %} bubble--secondary{% endif %}">{{ message.text }}</p>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="tutor__thread">
+              <p class="bubble bubble--hint">{{ lesson.tutor_hint }}</p>
+              {% for message in lesson.tutor_messages %}
+                <p class="bubble{% if not forloop.first %} bubble--secondary{% endif %}">{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
 
           <div class="tutor__feedback">
             <span>Was this helpful?</span>
@@ -250,34 +225,53 @@
             </button>
           </div>
 
-          <div class="ask">
-            <label for="tutor-question" class="visually-hidden">Ask the tutor a question</label>
-            <input id="tutor-question" type="text" placeholder="Ask a question or get a hint..." readonly aria-describedby="demo-note">
-            <button type="button" class="icon-btn ask__send" aria-label="Send question" aria-disabled="true" aria-describedby="demo-note">
-              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3.5 10 16.5 4l-4.2 12.5-2.6-5-6.2-1.5Z" fill="currentColor"/></svg>
-            </button>
-          </div>
+          {% if player %}
+            <form class="ask" data-tutor-form novalidate>
+              {% csrf_token %}
+              <p id="tutor-help" class="visually-hidden">Type a question, or /hint, /explain, /solution or /next.</p>
+              <label for="tutor-question" class="visually-hidden">Ask the tutor a question</label>
+              <input id="tutor-question" name="message" type="text" placeholder="Ask a question or get a hint..." autocomplete="off" maxlength="4000" title="Type a question, or /hint, /explain, /solution or /next" aria-describedby="tutor-help"{% if not player.tutor_available %} disabled{% endif %} data-tutor-input>
+              <button type="submit" class="icon-btn ask__send" aria-label="Send question"{% if not player.tutor_available %} disabled aria-disabled="true"{% endif %} data-tutor-send>
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3.5 10 16.5 4l-4.2 12.5-2.6-5-6.2-1.5Z" fill="currentColor"/></svg>
+              </button>
+            </form>
+          {% else %}
+            <div class="ask">
+              <label for="tutor-question" class="visually-hidden">Ask the tutor a question</label>
+              <input id="tutor-question" type="text" placeholder="Ask a question or get a hint..." readonly aria-describedby="demo-note">
+              <button type="button" class="icon-btn ask__send" aria-label="Send question" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3.5 10 16.5 4l-4.2 12.5-2.6-5-6.2-1.5Z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          {% endif %}
         </section>
 
-        <section id="next-up" class="next-up" aria-labelledby="next-title">
+        <section id="next-up" class="next-up" aria-labelledby="next-title" data-next-up>
           <div class="next-up__head">
             <span class="next-up__marker" aria-hidden="true"></span>
             <h2 class="next-up__label">Next Up</h2>
-            <span class="badge badge--teal">{{ lesson.next_up.badge }}</span>
+            <span class="badge badge--teal" data-next-badge>{{ lesson.next_up.badge }}</span>
           </div>
           <div class="next-up__body">
             <span class="next-up__icon" aria-hidden="true">
               <svg viewBox="0 0 32 32" width="30" height="30"><rect x="6" y="17" width="5" height="9" rx="1.2" fill="#5cc9b5"/><rect x="13.5" y="11" width="5" height="15" rx="1.2" fill="#3aa6a0"/><rect x="21" y="6" width="5" height="20" rx="1.2" fill="#2f8f8a"/></svg>
             </span>
             <div>
-              <h3 id="next-title" class="next-up__title">{{ lesson.next_up.title }}</h3>
-              <p class="next-up__description">{{ lesson.next_up.description }}</p>
+              <h3 id="next-title" class="next-up__title" data-next-title>{{ lesson.next_up.title }}</h3>
+              <p class="next-up__description" data-next-description>{{ lesson.next_up.description }}</p>
             </div>
           </div>
-          <button type="button" class="btn-outline" aria-disabled="true" aria-describedby="demo-note">
-            Preview Challenge
-            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h11m-4-4.5 4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
+          {% if player %}
+            <a class="btn-outline" data-continue {% if lesson.next_up.href %}href="{{ lesson.next_up.href }}"{% else %}aria-disabled="true"{% endif %}>
+              <span data-continue-label>{{ lesson.next_up.button }}</span>
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h11m-4-4.5 4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          {% else %}
+            <button type="button" class="btn-outline" aria-disabled="true" aria-describedby="demo-note">
+              Preview Challenge
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h11m-4-4.5 4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          {% endif %}
         </section>
 
         <p class="tagline">
@@ -291,47 +285,15 @@
 
 {% block footer %}
   <footer class="site-footer">
-    <p>Demo preview · The application is running.</p>
+    {% if player %}
+      <p>Python AI Tutor · Learn one step at a time.</p>
+    {% else %}
+      <p>Demo preview · The application is running.</p>
+    {% endif %}
   </footer>
 {% endblock %}
 
 {% block extra_js %}
-  <script>
-    (function () {
-      // Mobile: progress details collapse behind a toggle. Without JS they stay visible.
-      var toggle = document.querySelector(".mastery__toggle");
-      var progress = document.querySelector(".side-progress");
-      if (toggle && progress) {
-        toggle.hidden = false;
-        toggle.addEventListener("click", function () {
-          var open = toggle.getAttribute("aria-expanded") !== "true";
-          toggle.setAttribute("aria-expanded", String(open));
-          progress.classList.toggle("is-open", open);
-          toggle.querySelector(".visually-hidden").textContent =
-            (open ? "Hide" : "Show") + " progress details";
-        });
-      }
-      // Top-bar menus: close with Escape, on outside click, or after choosing a link.
-      var menus = Array.prototype.slice.call(document.querySelectorAll("details[data-menu]"));
-      document.addEventListener("keydown", function (event) {
-        if (event.key !== "Escape") return;
-        menus.forEach(function (menu) {
-          if (menu.open) {
-            menu.open = false;
-            menu.querySelector("summary").focus();
-          }
-        });
-      });
-      document.addEventListener("click", function (event) {
-        menus.forEach(function (menu) {
-          if (menu.open && !menu.contains(event.target)) menu.open = false;
-        });
-      });
-      menus.forEach(function (menu) {
-        menu.addEventListener("click", function (event) {
-          if (event.target.closest("a")) menu.open = false;
-        });
-      });
-    })();
-  </script>
+  {% if player %}{{ player.config|json_script:"course-player-config" }}{% endif %}
+  <script src="{% static 'js/course_player.js' %}" defer></script>
 {% endblock %}

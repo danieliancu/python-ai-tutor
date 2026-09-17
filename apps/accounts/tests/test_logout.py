@@ -14,7 +14,7 @@ class LogoutTests(TestCase):
     def test_post_logs_out_and_redirects_home(self) -> None:
         self.client.force_login(self.user)
         response = self.client.post(URL)
-        self.assertRedirects(response, reverse("home"))
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
         self.assertFalse(get_user(self.client).is_authenticated)
 
     def test_get_is_not_allowed_and_keeps_the_session(self) -> None:

@@ -32,7 +32,7 @@ class LoginTests(TestCase):
 
     def test_login_with_username(self) -> None:
         self.complete_onboarding()
-        self.assertRedirects(self.login("daniel"), reverse("home"))
+        self.assertRedirects(self.login("daniel"), reverse("home"), fetch_redirect_response=False)
         self.assert_logged_in()
 
     def test_login_with_email_is_case_insensitive(self) -> None:
@@ -40,7 +40,9 @@ class LoginTests(TestCase):
         for identifier in ("Daniel@Example.com", "daniel@example.com", " DANIEL@EXAMPLE.COM "):
             with self.subTest(identifier=identifier):
                 self.client.logout()
-                self.assertRedirects(self.login(identifier), reverse("home"))
+                self.assertRedirects(
+                    self.login(identifier), reverse("home"), fetch_redirect_response=False
+                )
                 self.assert_logged_in()
 
     def test_wrong_password_fails_without_revealing_which_part(self) -> None:
@@ -86,12 +88,12 @@ class LoginTests(TestCase):
             with self.subTest(next=unsafe):
                 self.client.logout()
                 response = self.login("daniel", next=unsafe)
-                self.assertRedirects(response, reverse("home"))
+                self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
 
     def test_signed_in_user_visiting_login_is_redirected(self) -> None:
         self.complete_onboarding()
         self.client.force_login(self.user)
-        self.assertRedirects(self.client.get(URL), reverse("home"))
+        self.assertRedirects(self.client.get(URL), reverse("home"), fetch_redirect_response=False)
 
     def test_login_required_pages_send_anonymous_users_to_login(self) -> None:
         for name in ("learners:profile", "learners:onboarding"):

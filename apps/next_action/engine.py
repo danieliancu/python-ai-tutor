@@ -241,3 +241,8 @@ def _load(enrollment: Enrollment) -> _WorldSnapshot:
         attempt_counts=attempt_counts,
         blocked=blocked,
     )
+
+
+def concept_contexts(enrollment: Enrollment) -> list[ConceptContext]:
+    """The per-concept facts the engine decides from (read-only; for presentation layers)."""
+    return _load(enrollment).contexts

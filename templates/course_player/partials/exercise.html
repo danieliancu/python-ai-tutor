@@ -1,0 +1,100 @@
+{% with ex=player.exercise %}
+        <section class="exercise" aria-labelledby="exercise-title">
+          <div class="exercise__head">
+            {% if ex %}<span class="exercise__number" aria-hidden="true">{{ lesson.exercise_number }}</span>{% endif %}
+            <div>
+              <p class="exercise__kicker">{% if ex %}{{ ex.kicker }}<span class="visually-hidden"> {{ lesson.exercise_number }}</span>{% elif player.state == "course_complete" %}Course complete{% else %}Up next{% endif %}</p>
+              <h2 id="exercise-title" class="exercise__title">{{ lesson.exercise_title }}</h2>
+              <p class="exercise__instruction">{{ lesson.instruction|linebreaksbr }}</p>
+              {% if lesson.extra_instruction %}<p class="exercise__instruction">{{ lesson.extra_instruction|linebreaksbr }}</p>{% endif %}
+            </div>
+          </div>
+
+          {% if ex %}
+          <form class="exercise__form" data-exercise-form novalidate>
+            {% csrf_token %}
+            <div class="editor" role="group" aria-label="{% if ex.is_code %}Code editor{% else %}Your answer{% endif %}">
+              <div class="editor__tabs">
+                <span class="editor__tab">{{ ex.tab }}</span>
+                {% if ex.is_code %}
+                  <button type="button" class="text-btn" data-reset>
+                    <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4.5 10a5.5 5.5 0 1 0 1.8-4.1M4.5 3.5v3h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Reset
+                  </button>
+                {% endif %}
+              </div>
+              {% if ex.is_code %}
+                <div class="editor__code code-field">
+                  <pre class="code-field__gutter" aria-hidden="true" data-gutter></pre>
+                  <label for="code-answer" class="visually-hidden">Your Python code</label>
+                  <textarea id="code-answer" class="code-field__input" name="answer" data-answer spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-describedby="run-hint">
+{{ ex.starter_code }}</textarea>
+                </div>
+              {% elif ex.is_choice %}
+                {% if ex.snippet_lines %}
+<pre class="editor__code"><code>{% for line in ex.snippet_lines %}<span class="ln">{{ line }}</span>
+{% endfor %}</code></pre>
+                {% endif %}
+                <fieldset class="choice-list">
+                  <legend class="visually-hidden">Choose one answer</legend>
+                  {% for option in ex.options %}
+                    <label class="choice">
+                      <input type="radio" name="answer" value="{{ option.id }}" data-answer>
+                      <span class="choice__text">{{ option.text }}</span>
+                    </label>
+                  {% endfor %}
+                </fieldset>
+              {% elif ex.is_gap %}
+<pre class="editor__code"><code>{% for line in ex.gap_lines %}<span class="ln">{% for part in line %}{% if part.gap %}<label for="gap-answer" class="visually-hidden">Missing piece</label><input id="gap-answer" class="gap-input" name="answer" data-answer autocomplete="off" autocapitalize="off" spellcheck="false" size="8">{% else %}{{ part.text }}{% endif %}{% endfor %}</span>
+{% endfor %}</code></pre>
+              {% elif ex.is_line %}
+                <div class="answer-field">
+                  <label for="line-answer" class="answer-field__label">Your answer</label>
+                  <span class="answer-field__row">
+                    <input id="line-answer" class="answer-input" name="answer" data-answer inputmode="decimal" autocomplete="off">
+                    {% if ex.unit %}<span class="answer-field__unit">{{ ex.unit }}</span>{% endif %}
+                  </span>
+                </div>
+              {% elif ex.is_text %}
+                <div class="answer-field">
+                  {% if ex.source_text %}<p class="answer-field__source">{{ ex.source_text }}</p>{% endif %}
+                  <label for="text-answer" class="visually-hidden">Your answer</label>
+                  <textarea id="text-answer" class="answer-text" name="answer" data-answer rows="7"></textarea>
+                </div>
+              {% else %}
+                <div class="answer-field">
+                  <p class="answer-field__note">This type of exercise can't be answered in the browser yet.</p>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="run-row">
+              <button type="submit" class="btn-run" data-run{% if not ex.supported %} disabled aria-disabled="true"{% endif %}>
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M6 4.2v11.6a.6.6 0 0 0 .9.5l9.3-5.8a.6.6 0 0 0 0-1L6.9 3.7a.6.6 0 0 0-.9.5Z" fill="currentColor"/></svg>
+                <span data-run-label>{% if ex.is_code %}Run Code{% else %}Check answer{% endif %}</span>
+              </button>
+              <p class="run-row__hint" id="run-hint">Use <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to {% if ex.is_code %}run{% else %}check{% endif %}</p>
+              <button type="button" class="icon-btn run-row__expand" aria-label="Run options" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button type="button" class="icon-btn" aria-label="More actions" aria-disabled="true" aria-describedby="demo-note">
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="4.5" cy="10" r="1.5" fill="currentColor"/><circle cx="10" cy="10" r="1.5" fill="currentColor"/><circle cx="15.5" cy="10" r="1.5" fill="currentColor"/></svg>
+              </button>
+            </div>
+
+            <div class="console" role="group" aria-label="Result">
+              <div class="console__tabs">
+                <span class="console__tab{% if not player.has_error %} is-active{% endif %}" data-tab-output>Output</span>
+                <span class="console__tab{% if player.has_error %} is-active{% endif %}" data-tab-errors>Errors</span>
+                <button type="button" class="text-btn" data-clear>
+                  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6m-6.5 0 .7 9.5h7.6l.7-9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Clear
+                </button>
+              </div>
+              <pre class="console__output" role="status" aria-live="polite"><samp data-output>{% for line in player.output_lines %}{{ line }}
+{% endfor %}</samp><span class="console__prompt" aria-hidden="true">&gt;</span> <span class="caret caret--light" aria-hidden="true"></span></pre>
+            </div>
+          </form>
+          {% endif %}
+        </section>
+{% endwith %}

@@ -1,0 +1,44 @@
+        <div class="mastery">
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+              <defs>
+                <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc9b5"/><stop offset="1" stop-color="#3aa6a0"/></linearGradient>
+              </defs>
+              <circle cx="60" cy="60" r="50" class="ring__track"/>
+              <circle cx="60" cy="60" r="50" class="ring__value" pathLength="100" stroke-dasharray="{{ progress.mastery }} 100" transform="rotate(-90 60 60)"/>
+            </svg>
+            <span class="ring__label">{{ progress.mastery }}%</span>
+          </div>
+          <div class="mastery__text">
+            <h2 id="mastery-title" class="mastery__title">Python Mastery</h2>
+            <p class="mastery__helper mastery__helper--desktop">Keep going. You're building real skills.</p>
+            <p class="mastery__helper mastery__helper--mobile">{{ progress.mastery }}% mastery · Keep going!</p>
+          </div>
+          <button type="button" class="icon-btn mastery__toggle" aria-expanded="false" aria-controls="progress-details" hidden>
+            <span class="visually-hidden">Show progress details</span>
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <dl id="progress-details" class="progress-details">
+          <div class="progress-details__item progress-details__item--current"><dt>Current skill</dt><dd>{{ progress.current_skill }}</dd></div>
+          <div class="progress-details__item"><dt>Level</dt><dd>{{ progress.level }}</dd></div>
+          <div class="progress-details__item"><dt>XP</dt><dd>{{ progress.xp }}</dd></div>
+          <div class="progress-details__item"><dt>Streak</dt><dd>{{ progress.streak_days }} days</dd></div>
+        </dl>
+
+        <nav id="skill-map" class="skill-map" aria-label="Skill map">
+          <h2 class="skill-map__title">
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><rect x="3" y="11" width="3.2" height="6" rx="1" fill="#5cc9b5"/><rect x="8.4" y="7" width="3.2" height="10" rx="1" fill="#3aa6a0"/><rect x="13.8" y="3" width="3.2" height="14" rx="1" fill="#2f8f8a"/></svg>
+            Skill map
+          </h2>
+          <ol class="skills">
+            {% for skill in skills %}
+              <li class="skill{% if skill.extra %} skill--extra{% endif %}" data-state="{{ skill.state }}"{% if skill.current %} aria-current="step"{% endif %}>
+                <span class="skill__dot" aria-hidden="true">{% if skill.state == "mastered" %}<svg viewBox="0 0 20 20" width="12" height="12"><path d="m5 10.5 3.2 3L15 6.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endif %}</span>
+                <span class="skill__name">{{ skill.name }}</span>
+                <span class="skill__status">{% if skill.current %}<span class="visually-hidden">Current skill, </span>{% endif %}{{ skill.status|upper }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        </nav>

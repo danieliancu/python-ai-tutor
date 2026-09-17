@@ -53,7 +53,7 @@ class OnboardingTests(TestCase):
 
     def test_successful_onboarding(self) -> None:
         response = self.post(world=self.english.pk)
-        self.assertRedirects(response, reverse("home"))
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
         profile = self.profile()
         self.assertEqual(profile.preferred_name, "Dani")
         self.assertIsNotNone(profile.onboarding_completed_at)
@@ -63,13 +63,13 @@ class OnboardingTests(TestCase):
     def test_repeated_post_does_not_duplicate_enrollment(self) -> None:
         self.post()
         response = self.post(preferred_name="Someone else")
-        self.assertRedirects(response, reverse("home"))
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
         self.assertEqual(Enrollment.objects.count(), 1)
         self.assertEqual(self.profile().preferred_name, "Dani")
 
     def test_completed_learner_is_sent_home(self) -> None:
         LearnerProfile.objects.create(user=self.user, onboarding_completed_at=timezone.now())
-        self.assertRedirects(self.client.get(URL), reverse("home"))
+        self.assertRedirects(self.client.get(URL), reverse("home"), fetch_redirect_response=False)
 
     def assert_nothing_completed(self) -> None:
         self.assertFalse(Enrollment.objects.exists())

@@ -107,4 +107,4 @@ class SignUpTests(TestCase):
 
     def test_signed_in_user_is_sent_home(self) -> None:
         self.client.force_login(make_user())
-        self.assertRedirects(self.client.get(URL), reverse("home"))
+        self.assertRedirects(self.client.get(URL), reverse("home"), fetch_redirect_response=False)

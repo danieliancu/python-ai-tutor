@@ -4,6 +4,7 @@ from unittest import mock
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.learners.models import LearnerProfile
@@ -114,32 +115,32 @@ class HomeAuthAwareTests(TestCase):
         self.assertNotContains(response, reverse("accounts:logout"))
         self.assertNotContains(response, "account-menu")
 
-    def test_signed_in_learner_sees_account_menu(self) -> None:
-        user = User.objects.create_user("daniel", "daniel@example.com", "pass-12345-word")
-        LearnerProfile.objects.create(user=user, preferred_name="Dani")
-        self.client.force_login(user)
-
-        response = self.client.get(reverse("home"))
-        self.assertContains(response, 'aria-label="Account menu for Dani"')
-        self.assertContains(response, f'href="{reverse("learners:profile")}"')
-        self.assertContains(response, f'<form method="post" action="{reverse("accounts:logout")}">')
-        self.assertContains(response, 'name="csrfmiddlewaretoken"')
-        self.assertNotContains(response, "signin-link")
-
-    def test_username_is_used_without_creating_a_profile(self) -> None:
+    def test_signed_in_user_without_profile_goes_to_onboarding(self) -> None:
         user = User.objects.create_user("noprofile", "np@example.com", "pass-12345-word")
         self.client.force_login(user)
         response = self.client.get(reverse("home"))
-        self.assertContains(response, "Account menu for noprofile")
+        self.assertRedirects(
+            response, reverse("learners:onboarding"), fetch_redirect_response=False
+        )
+        # The redirect itself never creates a profile.
         self.assertFalse(LearnerProfile.objects.exists())
 
-    def test_demo_progress_is_unchanged_for_signed_in_users(self) -> None:
+    def test_onboarded_user_without_course_goes_to_profile(self) -> None:
         user = User.objects.create_user("daniel", "daniel@example.com", "pass-12345-word")
+        LearnerProfile.objects.create(
+            user=user, preferred_name="Dani", onboarding_completed_at=timezone.now()
+        )
         self.client.force_login(user)
         response = self.client.get(reverse("home"))
-        for text in ("31%", "XP</span> 7,840", "<dd>12 days</dd>", "Run Code"):
+        self.assertRedirects(response, reverse("learners:profile"), fetch_redirect_response=False)
+
+    def test_signed_in_users_never_see_demo_progress(self) -> None:
+        user = User.objects.create_user("daniel", "daniel@example.com", "pass-12345-word")
+        self.client.force_login(user)
+        response = self.client.get(reverse("home"), follow=True)
+        for text in ("31%", "XP</span> 7,840", "<dd>12 days</dd>", "Demo preview"):
             with self.subTest(text=text):
-                self.assertContains(response, text)
+                self.assertNotContains(response, text)
 
 
 class HealthViewTests(SimpleTestCase):

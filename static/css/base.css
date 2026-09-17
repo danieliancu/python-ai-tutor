@@ -2388,3 +2388,210 @@ select.field__input {
     border: 2px solid ButtonText;
   }
 }
+
+/* --- Course player controls ---------------------------------------------------
+   Functional form controls inside the existing exercise and tutor areas. They reuse the
+   editor/console metrics above so the product looks the same as the static shell. */
+
+.code-field {
+  --gutter: 3.5rem;
+  position: relative;
+  display: flex;
+  padding-bottom: 0;
+}
+
+.code-field__gutter {
+  flex: 0 0 var(--gutter);
+  margin: 0;
+  padding: 0 0.9rem 44px 0;
+  overflow: hidden;
+  color: #8a94a6;
+  font: inherit;
+  text-align: right;
+  user-select: none;
+}
+
+.code-field__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 13.5rem;
+  margin: 0;
+  padding: 0 20px 44px 1.1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+  resize: vertical;
+}
+
+.code-field__input:focus {
+  outline: none;
+}
+
+.editor:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.choice-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 16px 20px 20px;
+  border: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.choice input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue);
+}
+
+.choice__text {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+
+.gap-input {
+  min-width: 5ch;
+  margin: 0 2px;
+  padding: 0 6px;
+  border: 0;
+  border-bottom: 2px solid var(--blue);
+  border-radius: 4px 4px 0 0;
+  background: var(--blue-soft);
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.answer-field {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px 22px;
+}
+
+.answer-field__label,
+.answer-field__note,
+.answer-field__source {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.answer-field__source {
+  color: var(--text-2);
+  font-size: 1rem;
+}
+
+.answer-field__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.answer-input,
+.answer-text {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.answer-input {
+  max-width: 16rem;
+  font-family: var(--font-mono);
+}
+
+.answer-text {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.answer-field__unit {
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.btn-run:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.4) opacity(0.75);
+}
+
+.console__output samp {
+  white-space: pre-wrap;
+}
+
+.bubble--learner {
+  align-self: flex-end;
+  background: var(--blue-soft);
+  color: #1c4fc4;
+}
+
+.bubble--pending {
+  color: var(--muted);
+}
+
+.ask input:disabled,
+.ask button:disabled {
+  cursor: not-allowed;
+}
+
+a.btn-outline {
+  text-decoration: none;
+}
+
+a.btn-outline[aria-disabled="true"] {
+  color: var(--muted);
+}
+
+.skill[data-state="available"] .skill__dot {
+  border: 2px solid var(--locked-line);
+}
+
+@media (max-width: 759px) {
+  .code-field {
+    --gutter: 2.6rem;
+  }
+
+  .code-field__gutter {
+    padding: 0 0.7rem 28px 0;
+  }
+
+  .code-field__input {
+    min-height: 10rem;
+    padding: 0 16px 28px 0.9rem;
+  }
+
+  .choice-list,
+  .answer-field {
+    padding: 14px 16px 18px;
+  }
+}

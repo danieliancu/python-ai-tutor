@@ -1,12 +1,13 @@
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
-from apps.learners.models import LearnerProfile
+from apps.exercises.access import ACCESS_STATUSES
+from apps.learners.models import Enrollment, EnrollmentStatus, LearnerProfile
 
-# Static demo content for the Phase 1 product shell. Presentation only: nothing here is
-# persisted or calculated. Real progress, curriculum and tutor data arrive in later phases.
+# Static demo content for the public (signed-out) product shell. Presentation only: nothing
+# here is persisted or calculated. Signed-in learners get the real course player instead.
 DEMO_PROGRESS = {
     "level": 14,
     "xp": "7,840",
@@ -62,6 +63,8 @@ DEMO_QUOTE = "Small steps build extraordinary results."
 
 @require_GET
 def home(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return _learner_home(request)
     context = {
         "progress": DEMO_PROGRESS,
         "skills": DEMO_SKILLS,
@@ -70,6 +73,23 @@ def home(request: HttpRequest) -> HttpResponse:
         "account_name": _account_name(request),
     }
     return render(request, "home.html", context)
+
+
+def _learner_home(request: HttpRequest) -> HttpResponse:
+    """Signed-in learners go to their course (first active enrollment, else first completed)."""
+    enrollments = Enrollment.objects.filter(
+        learner__user=request.user, status__in=ACCESS_STATUSES, world__is_published=True
+    )
+    enrollment = (
+        enrollments.filter(status=EnrollmentStatus.ACTIVE).order_by("enrolled_at", "id").first()
+        or enrollments.order_by("enrolled_at", "id").first()
+    )
+    if enrollment is not None:
+        return redirect("course_player:world", world_id=enrollment.world_id)
+    profile = LearnerProfile.objects.filter(user=request.user).first()
+    if profile is None or not profile.has_completed_onboarding:
+        return redirect("learners:onboarding")
+    return redirect("learners:profile")
 
 
 def _account_name(request: HttpRequest) -> str:
