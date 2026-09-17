@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "apps.attempts",
     "apps.learner_intelligence",
     "apps.misconceptions",
+    "apps.next_action",
 ]
 
 MIDDLEWARE = [

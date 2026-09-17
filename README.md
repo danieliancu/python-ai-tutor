@@ -88,10 +88,27 @@ Phase 6B adds deterministic misconception detection (`apps/misconceptions/`). An
 - **Rebuilding.** Raw mistake codes are never misconceptions on their own. Evidence and state are derived, versioned and rebuildable with `python manage.py rebuild_misconceptions` (optionally `--enrollment-id` or `--world-slug`). A failed refresh never removes the attempt or the learner-intelligence state.
 - **Student State.** The learning-state endpoint lists each concept's active and watched misconceptions (code, title, status, confidence) and counts them in its summary. Evidence, answers and exercise specs are never exposed.
 
-No AI decides any of this, and there is no next-best-action yet.
+No AI decides any of this.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates) and misconception detection.
-**Not yet implemented:** next-best-action, AI tutoring and feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 7 adds a deterministic Next Best Action (`apps/next_action/`). `GET /app/worlds/<id>/next-action/` (session login, own active or completed enrollment, read-only) answers "what should I do next?" with an action (`learn`, `practice`, `review`, `remediate`, `course_complete` or `no_available_action`), reason codes, the concept, lesson and exercise (safe presentation only), a target learning mode and any related misconceptions. Priorities, highest first:
+
+1. **Remediate** a concept with an active misconception, preferring exercises tagged with it.
+2. **Review** a concept whose review date has passed.
+3. **Strengthen** a started concept whose mastery is below 65.
+4. **Learn** the next new concept, in authored order, once its prerequisites are ready.
+5. **Deepen** a concept that is learned but not mastered, has an untried stronger learning mode, has a weak mode, is falling, or has watched misconceptions.
+
+How the rules work:
+
+- **Prerequisites.** A new concept unlocks when every concept prerequisite, and every published concept of each prerequisite skill, has mastery of at least 65. New content never waits for mastery 85. Prerequisites only gate new concepts; started concepts always stay available.
+- **Urgency and ties.** Within a tier, urgency (overdue days, retention, mastery gap, a falling trend, watched misconceptions, a small bonus for continuing the current concept) and then curriculum order break ties. Urgency never outranks a higher tier.
+- **Exercise choice.** The target mode is the first mode without a correct answer (recognise → complete → fix → create), otherwise the weakest one, and only among modes that have published exercises. The picker then prefers a matching lesson kind, then exercises not in the last three attempts, then unattempted ones.
+- **Finishing.** `course_complete` needs every published concept mastered, with nothing to remediate and no review due. A learner who is blocked by prerequisites or by missing exercises gets `no_available_action` instead.
+
+Decisions are computed on each request and never stored. No AI is involved, and there is no learner interface yet. `python manage.py explain_next_action <enrollment_id> [--now ISO]` prints a decision, including the internal ranking, for debugging.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates), misconception detection and next-best-action decisions.
+**Not yet implemented:** AI tutoring and feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -118,6 +135,7 @@ apps/learner_intelligence/ Derived learner state (mastery, retention, review), S
                  endpoint and the rebuild_learner_intelligence command
 apps/misconceptions/ Misconception catalog, detectors (generic + Python), derived evidence/state
                  and the rebuild_misconceptions command
+apps/next_action/ Deterministic next-best-action engine and its read-only JSON endpoint
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -249,6 +267,7 @@ python manage.py makemigrations --check --dry-run   # fails if model changes lac
 python manage.py test                   # run the test suite (never needs Docker)
 python manage.py rebuild_learner_intelligence   # recalculate learner state from attempts
 python manage.py rebuild_misconceptions          # recalculate misconceptions from attempts
+python manage.py explain_next_action <enrollment_id>   # show one learner's next action
 ruff check .                            # lint
 ruff format .                           # format (use --check in CI)
 ```

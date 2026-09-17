@@ -39,3 +39,10 @@ def accessible_exercises(user: AnyUser) -> QuerySet[Exercise]:
 
 def learner_can_access_exercise(user: AnyUser, exercise: Exercise) -> bool:
     return accessible_exercises(user).filter(pk=exercise.pk).exists()
+
+
+def accessible_enrollment(user: AnyUser, world: World) -> Enrollment | None:
+    """The user's own enrollment that currently grants access to ``world``, if any."""
+    if not user.is_authenticated:
+        return None
+    return _accessible_enrollments(user).filter(world=world).select_related("world").first()
