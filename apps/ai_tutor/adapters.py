@@ -1,49 +1,73 @@
-"""Extension point for domain-specific tutoring (e.g. a future per-language adapter).
+"""Extension point for domain-specific tutoring, selected by ``World.domain``.
 
-Adapters may add trusted instructions, private teaching context and reply post-processing.
-Phase 8 ships only the generic adapter; nothing dispatches on World slugs.
+Adapters may add trusted instructions, private teaching context (which must respect the
+granted help level) and reply validation. Unknown domains get the generic adapter.
 """
 
 from typing import Protocol
 
+GENERAL_DOMAIN = "general"
+
 
 class TutorDomainAdapter(Protocol):
-    name: str
+    domain: str
 
-    def applies_to(self, world) -> bool: ...
+    def extra_instructions(self, *, server_context: dict, granted: str, exercise) -> str: ...
 
-    def extra_instructions(self, server_context: dict) -> str: ...
+    def private_teaching_context(
+        self,
+        *,
+        enrollment,
+        exercise,
+        latest_attempt,
+        granted: str,
+        assistance,
+        server_context: dict,
+    ) -> dict: ...
 
-    def private_teaching_context(self, *, enrollment, exercise, latest_attempt) -> dict: ...
+    def validate_reply(self, reply: str, *, granted: str, exercise, private_context: dict) -> None:
+        """Raise ``TutorInvalidResponse`` to reject a reply before anything is stored."""
 
     def postprocess_reply(self, reply: str) -> str: ...
 
 
 class GenericTutorAdapter:
-    """Domain-neutral behaviour: no extra instructions and no private context."""
+    """Domain-neutral behaviour: no extra instructions, no private context, no extra checks."""
 
-    name = "generic"
+    domain = GENERAL_DOMAIN
 
-    def applies_to(self, world) -> bool:
-        return True
-
-    def extra_instructions(self, server_context: dict) -> str:
+    def extra_instructions(self, *, server_context: dict, granted: str, exercise) -> str:
         return ""
 
-    def private_teaching_context(self, *, enrollment, exercise, latest_attempt) -> dict:
+    def private_teaching_context(
+        self,
+        *,
+        enrollment,
+        exercise,
+        latest_attempt,
+        granted: str,
+        assistance,
+        server_context: dict,
+    ) -> dict:
         return {}
+
+    def validate_reply(self, reply: str, *, granted: str, exercise, private_context: dict) -> None:
+        return None
 
     def postprocess_reply(self, reply: str) -> str:
         return reply.strip()
 
 
-# Domain adapters are registered ahead of the generic fallback.
-ADAPTERS: list[TutorDomainAdapter] = []
 FALLBACK = GenericTutorAdapter()
+_ADAPTERS: dict[str, TutorDomainAdapter] = {}
+
+
+def register_adapter(adapter: TutorDomainAdapter) -> None:
+    existing = _ADAPTERS.get(adapter.domain)
+    if existing is not None and type(existing) is not type(adapter):
+        raise ValueError(f"A tutor adapter for domain {adapter.domain!r} is already registered.")
+    _ADAPTERS[adapter.domain] = adapter
 
 
 def adapter_for(world) -> TutorDomainAdapter:
-    for adapter in ADAPTERS:
-        if adapter.applies_to(world):
-            return adapter
-    return FALLBACK
+    return _ADAPTERS.get(getattr(world, "domain", GENERAL_DOMAIN), FALLBACK)

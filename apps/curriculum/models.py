@@ -85,6 +85,9 @@ class World(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=100)
     description = models.TextField()
+    # The subject area (e.g. "python", "english"). Free text so new domains need no migration;
+    # it selects domain-specific behaviour such as the tutor adapter.
+    domain = models.SlugField(max_length=50, default="general", db_index=True)
     order = _order_field()
     is_published = models.BooleanField(default=False)
 

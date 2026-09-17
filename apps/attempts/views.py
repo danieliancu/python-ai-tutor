@@ -8,6 +8,7 @@ from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_http_methods
 
+from apps.attempts.exceptions import AttemptTemporarilyBlocked
 from apps.attempts.presentation import attempt_detail, attempt_list_item
 from apps.attempts.selectors import attempts_for_learner
 from apps.attempts.services import AttemptInputError, record_attempt
@@ -74,6 +75,8 @@ def exercise_attempts(request: HttpRequest, exercise_id: int) -> JsonResponse:
         return json_error("invalid_input", 400, fields=exc.message_dict)
     except PermissionDenied:
         return json_error("forbidden", 403)
+    except AttemptTemporarilyBlocked as exc:
+        return json_error(exc.code, exc.status, message=exc.message)
     return JsonResponse(attempt_detail(attempt), status=201)
 
 

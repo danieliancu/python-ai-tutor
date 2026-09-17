@@ -10,6 +10,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Max
 
+from apps.attempts.exceptions import AttemptAssistanceUnavailable, AttemptTutorTurnInProgress
 from apps.attempts.mistakes import extract_mistakes_from_result, safe_diagnostics
 from apps.attempts.models import (
     MAX_DURATION_SECONDS,
@@ -134,13 +135,11 @@ def record_attempt(
         duration_seconds=duration_seconds,
     )
     enrollment = resolve_enrollment(user, exercise)
-    assistance = _with_server_assistance(
-        enrollment,
-        exercise,
-        hint_level=hint_level,
-        used_explanation=used_explanation,
-        used_solution=used_solution,
-    )
+    client_assistance = {
+        "hint_level": hint_level,
+        "used_explanation": used_explanation,
+        "used_solution": used_solution,
+    }
     # Evaluate before touching the database: code evaluation can take seconds.
     snapshot = _evaluate(exercise, answer)
     mistakes = snapshot.pop("mistakes")
@@ -153,9 +152,9 @@ def record_attempt(
                     exercise,
                     snapshot,
                     mistakes,
+                    client_assistance,
                     submitted_answer=answer,
                     duration_seconds=duration_seconds,
-                    **assistance,
                 )
             break
         except (IntegrityError, ValidationError) as exc:
@@ -169,21 +168,22 @@ def record_attempt(
     return attempt
 
 
-def _with_server_assistance(enrollment, exercise, **client) -> dict:
-    """Client-reported help, raised to at least the AI tutor help the server knows about.
+def _server_assistance(enrollment, exercise, client: dict) -> dict:
+    """Client-reported help raised to the AI help the server knows about.
 
-    If the tutor record can't be read, the attempt is still stored with the client's values.
+    Server-known help is authoritative: if it can't be determined, the attempt is refused
+    rather than stored with client values alone.
     """
     try:
         # Imported lazily: the tutor app depends on attempts, not the other way round.
-        from apps.ai_tutor.assistance import merge_with_client
+        from apps.ai_tutor.assistance import authoritative_for_attempt
 
-        return merge_with_client(enrollment, exercise, **client)
+        return authoritative_for_attempt(enrollment, exercise, **client)
+    except AttemptTutorTurnInProgress:
+        raise
     except Exception:
-        logger.exception(
-            "Could not read tutor assistance for exercise %s; using client values.", exercise.pk
-        )
-        return client
+        logger.exception("Could not determine tutor assistance for exercise %s.", exercise.pk)
+        raise AttemptAssistanceUnavailable() from None
 
 
 # Work done after every stored attempt, in order: (label, module, function, recovery hint).
@@ -230,9 +230,11 @@ def _is_numbering_conflict(exc: Exception) -> bool:
     return isinstance(exc, ValidationError) and "__all__" in getattr(exc, "message_dict", {})
 
 
-def _store(enrollment, exercise, snapshot, mistakes, **fields) -> ExerciseAttempt:
-    # Serialise numbering per enrollment (a no-op on SQLite, which serialises writes anyway).
+def _store(enrollment, exercise, snapshot, mistakes, client_assistance, **fields):
+    # Serialise numbering and tutor-help bookkeeping per enrollment (tutor replies complete
+    # under the same lock). A no-op on SQLite, which serialises writes anyway.
     Enrollment.objects.select_for_update().filter(pk=enrollment.pk).first()
+    assistance = _server_assistance(enrollment, exercise, client_assistance)
     last = ExerciseAttempt.objects.filter(enrollment=enrollment, exercise=exercise).aggregate(
         last=Max("attempt_number")
     )["last"]
@@ -241,6 +243,7 @@ def _store(enrollment, exercise, snapshot, mistakes, **fields) -> ExerciseAttemp
         exercise=exercise,
         attempt_number=(last or 0) + 1,
         **snapshot,
+        **assistance,
         **fields,
     )
     for mistake in mistakes:

@@ -12,8 +12,8 @@ from apps.curriculum.models import (
 
 @admin.register(World)
 class WorldAdmin(admin.ModelAdmin):
-    list_display = ["title", "slug", "order", "is_published"]
-    list_filter = ["is_published"]
+    list_display = ["title", "slug", "domain", "order", "is_published"]
+    list_filter = ["is_published", "domain"]
     search_fields = ["title", "slug"]
     ordering = ["order", "id"]
     prepopulated_fields = {"slug": ["title"]}

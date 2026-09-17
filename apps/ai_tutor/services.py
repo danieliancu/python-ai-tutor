@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.ai_tutor import assistance
@@ -19,6 +19,7 @@ from apps.ai_tutor.config import get_tutor_config
 from apps.ai_tutor.constants import (
     EXERCISE_HELP_INTENTS,
     FORBIDDEN,
+    INTERNAL_ERROR,
     INVALID_INTENT,
     INVALID_MESSAGE,
     MESSAGE_REQUIRED,
@@ -30,6 +31,7 @@ from apps.ai_tutor.constants import (
     RATE_WINDOW_SECONDS,
     TUTOR_PROMPT_VERSION,
     TUTOR_RATE_LIMITED,
+    TUTOR_TURN_IN_PROGRESS,
     TUTOR_UNAVAILABLE,
     Intent,
     TurnStatus,
@@ -134,11 +136,126 @@ def request_tutor_turn(
             raise TutorRequestError(NO_EXERCISE_CONTEXT, 400)
         exercise = resolve_exercise(enrollment, decision.exercise_id)
 
-    attempt = latest_attempt(enrollment, exercise)
-    state = assistance.assistance_for(enrollment, exercise) if exercise else AssistanceState()
-    granted = grant_response_kind(intent, state, has_attempt=attempt is not None)
+    provider = provider or get_provider(config)
+    reservation = _reserve_turn(enrollment, exercise, intent, message, provider, config.model, now)
+    turn, attempt, state, granted = reservation
 
     adapter = adapter_for(enrollment.world)
+    try:
+        request, private_context = _build_request(
+            enrollment,
+            exercise=exercise,
+            attempt=attempt,
+            state=state,
+            granted=granted,
+            intent=intent,
+            message=message,
+            decision=decision,
+            adapter=adapter,
+            config=config,
+            now=now,
+        )
+    except Exception:
+        # Never leave a reservation behind.
+        _fail(turn, INTERNAL_ERROR, None)
+        raise
+
+    started = time.monotonic()
+    try:
+        result = provider.generate(request)
+        if result.response_kind != granted:
+            # The model may never pick its own level.
+            raise TutorInvalidResponse()
+        reply = adapter.postprocess_reply(result.reply)
+        adapter.validate_reply(
+            reply, granted=granted, exercise=exercise, private_context=private_context
+        )
+    except TutorError as exc:
+        _fail(turn, exc.code, _elapsed(started))
+        if exc.code == PROVIDER_RATE_LIMITED:
+            raise TutorRequestError(TUTOR_RATE_LIMITED, 429) from None
+        raise TutorRequestError(TUTOR_UNAVAILABLE, 503) from None
+    except Exception:
+        _fail(turn, INTERNAL_ERROR, _elapsed(started))
+        raise
+    latency = _elapsed(started)
+
+    try:
+        with transaction.atomic():
+            # Same lock as attempt storage: a reply and an attempt never interleave.
+            Enrollment.objects.select_for_update().filter(pk=enrollment.pk).first()
+            turn.status = TurnStatus.COMPLETE
+            turn.completed_at = timezone.now()
+            turn.response_kind = granted
+            turn.assistant_message = reply
+            turn.should_retry = result.should_retry
+            turn.provider = result.provider
+            turn.model = result.model[:100]
+            turn.provider_response_id = result.provider_response_id
+            turn.input_tokens = result.input_tokens
+            turn.output_tokens = result.output_tokens
+            turn.latency_ms = latency
+            turn.save()
+            if exercise is not None:
+                # Completed turns record delivered help; the cached state follows them.
+                state = assistance.reconcile_assistance_state(enrollment, exercise)
+    except Exception:
+        _fail(turn, INTERNAL_ERROR, latency)
+        raise
+    return TutorTurnOutcome(turn=turn, assistance=state)
+
+
+def _reserve_turn(enrollment, exercise, intent, message, provider, model, now):
+    """Create the PENDING turn, then decide the help level from committed history.
+
+    Exercise-scoped turns are limited to one pending turn per learner and exercise by the
+    database. The reservation is created *before* assistance is read, so a request that wins
+    it always sees help already delivered by earlier turns.
+    """
+    if exercise is not None:
+        assistance.expire_stale_turns(enrollment, exercise, now)
+    try:
+        with transaction.atomic():
+            turn = TutorTurn.objects.create(
+                enrollment=enrollment,
+                exercise=exercise,
+                requested_intent=intent,
+                user_message=message,
+                status=TurnStatus.PENDING,
+                provider=provider.name,
+                prompt_version=TUTOR_PROMPT_VERSION,
+                model=model,
+                created_at=now,
+            )
+            attempt = latest_attempt(enrollment, exercise)
+            state = (
+                assistance.reconcile_assistance_state(enrollment, exercise)
+                if exercise is not None
+                else AssistanceState()
+            )
+            granted = grant_response_kind(intent, state, has_attempt=attempt is not None)
+            turn.attempt = attempt
+            turn.response_kind = granted
+            turn.save(update_fields=["attempt", "response_kind"])
+    except IntegrityError:
+        raise TutorRequestError(TUTOR_TURN_IN_PROGRESS, 409) from None
+    return turn, attempt, state, granted
+
+
+def _build_request(
+    enrollment,
+    *,
+    exercise,
+    attempt,
+    state,
+    granted,
+    intent,
+    message,
+    decision,
+    adapter,
+    config,
+    now,
+):
     context = build_tutor_context(
         enrollment,
         exercise=exercise,
@@ -147,76 +264,54 @@ def request_tutor_turn(
         granted=granted,
         decision=decision,
         history_turns=config.history_turns,
-        private_teaching=adapter.private_teaching_context(
-            enrollment=enrollment, exercise=exercise, latest_attempt=attempt
-        ),
         now=now,
     )
+    private_context = adapter.private_teaching_context(
+        enrollment=enrollment,
+        exercise=exercise,
+        latest_attempt=attempt,
+        granted=granted,
+        assistance=state,
+        server_context=context.server,
+    )
+    if private_context:
+        context.server["private_teaching"] = private_context
+    allowed = solution_allowed(state, granted)
     request = TutorProviderRequest(
         instructions=build_instructions(
             granted=granted,
             disclosure=disclosure_for(state, granted),
-            solution_allowed=solution_allowed(state, granted),
-            adapter_instructions=adapter.extra_instructions(context.server),
+            solution_allowed=allowed,
+            adapter_instructions=adapter.extra_instructions(
+                server_context=context.server, granted=granted, exercise=exercise
+            ),
         ),
         server_context=context.server,
         history=context.history,
         learner_submission=context.learner_submission,
         user_message=message or button_message(intent),
         response_kind=granted,
-        solution_allowed=solution_allowed(state, granted),
+        solution_allowed=allowed,
         max_output_tokens=config.max_output_tokens,
     )
+    return request, private_context
 
-    provider = provider or get_provider(config)
-    # Recorded before the call (outside any transaction) so failures are auditable and count
-    # towards the rate limit.
-    turn = TutorTurn.objects.create(
-        enrollment=enrollment,
-        exercise=exercise,
-        attempt=attempt,
-        requested_intent=intent,
-        user_message=message,
-        status=TurnStatus.PENDING,
-        provider=provider.name,
-        prompt_version=TUTOR_PROMPT_VERSION,
-        model=config.model,
-        created_at=now,
-    )
-    started = time.monotonic()
+
+def _elapsed(started: float) -> int:
+    return int((time.monotonic() - started) * 1000)
+
+
+def _fail(turn: TutorTurn, code: str, latency: int | None) -> None:
+    """Record a failed turn and release its reservation. Never raises."""
     try:
-        result = provider.generate(request)
-        if result.response_kind != granted:
-            # The model may never pick its own level.
-            raise TutorInvalidResponse()
-    except TutorError as exc:
-        latency = int((time.monotonic() - started) * 1000)
-        _fail(turn, exc.code, latency)
-        if exc.code == PROVIDER_RATE_LIMITED:
-            raise TutorRequestError(TUTOR_RATE_LIMITED, 429) from None
-        raise TutorRequestError(TUTOR_UNAVAILABLE, 503) from None
-    latency = int((time.monotonic() - started) * 1000)
-
-    with transaction.atomic():
-        turn.status = TurnStatus.COMPLETE
-        turn.response_kind = granted
-        turn.assistant_message = adapter.postprocess_reply(result.reply)
-        turn.should_retry = result.should_retry
-        turn.provider = result.provider
-        turn.model = result.model[:100]
-        turn.provider_response_id = result.provider_response_id
-        turn.input_tokens = result.input_tokens
-        turn.output_tokens = result.output_tokens
-        turn.latency_ms = latency
-        turn.save()
-        if exercise is not None and intent != Intent.NEXT_STEP:
-            state = assistance.apply_turn(enrollment, exercise, granted)
-    return TutorTurnOutcome(turn=turn, assistance=state)
-
-
-def _fail(turn: TutorTurn, code: str, latency: int) -> None:
-    turn.status = TurnStatus.FAILED
-    turn.error_code = code if code else PROVIDER_INVALID_RESPONSE
-    turn.latency_ms = latency
-    turn.save(update_fields=["status", "error_code", "latency_ms", "provider"])
+        TutorTurn.objects.filter(pk=turn.pk, status=TurnStatus.PENDING).update(
+            status=TurnStatus.FAILED,
+            error_code=code or PROVIDER_INVALID_RESPONSE,
+            completed_at=timezone.now(),
+            latency_ms=latency,
+        )
+        turn.refresh_from_db()
+    except Exception:
+        logger.exception("Could not mark tutor turn %s as failed.", turn.pk)
+        return
     logger.warning("Tutor turn %s failed: %s", turn.pk, turn.error_code)

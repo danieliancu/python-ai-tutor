@@ -49,10 +49,28 @@ class DomainNeutralTutorTests(TutorFixtures, TestCase):
 
     def test_generic_adapter_is_neutral(self) -> None:
         adapter = GenericTutorAdapter()
-        self.assertEqual(adapter.extra_instructions({}), "")
+        self.assertEqual(adapter.domain, "general")
         self.assertEqual(
-            adapter.private_teaching_context(enrollment=None, exercise=None, latest_attempt=None),
+            adapter.extra_instructions(server_context={}, granted="hint", exercise=self.mcq), ""
+        )
+        self.assertEqual(
+            adapter.private_teaching_context(
+                enrollment=self.enrollment,
+                exercise=self.code,
+                latest_attempt=None,
+                granted="solution",
+                assistance=None,
+                server_context={},
+            ),
             {},
+        )
+        self.assertIsNone(
+            adapter.validate_reply(
+                self.code.evaluation_spec["reference_solution"],
+                granted="hint",
+                exercise=self.code,
+                private_context={},
+            )
         )
         self.assertEqual(adapter.postprocess_reply("  hi  "), "hi")
 

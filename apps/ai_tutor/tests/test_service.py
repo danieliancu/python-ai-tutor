@@ -85,7 +85,8 @@ class TutorServiceTests(TutorFixtures, TestCase):
         turn = TutorTurn.objects.get()
         self.assertEqual((turn.status, turn.error_code), ("failed", "provider_invalid_response"))
         self.assertEqual(turn.assistant_message, "")
-        self.assertIsNone(self.state())
+        self.assertIsNotNone(turn.completed_at)
+        self.assertEqual(self.state(), (0, False, False))
 
     def test_provider_failures_change_nothing(self) -> None:
         self.record(self.mcq, "opt-a")

@@ -39,6 +39,7 @@ def concept(
 WORLD = {
     "slug": "python-foundations",
     "title": "Python Foundations",
+    "domain": "python",
     "description": (
         "Learn to write, read and debug real Python programs, from your first print() to a "
         "small end-to-end project."

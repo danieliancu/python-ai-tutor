@@ -16,6 +16,7 @@ from apps.exercises.access import accessible_enrollment
 
 ALLOWED_FIELDS = frozenset({"message", "intent", "exercise_id"})
 UNAVAILABLE_MESSAGE = "The tutor is temporarily unavailable."
+IN_PROGRESS_MESSAGE = "A tutor response for this exercise is already being generated."
 
 
 def _parse(request: HttpRequest) -> dict:
@@ -74,5 +75,7 @@ def tutor_turns(request: HttpRequest, world_id: int) -> JsonResponse:
     except TutorRequestError as exc:
         if exc.status == 503:
             return json_error(exc.code, 503, message=UNAVAILABLE_MESSAGE)
+        if exc.status == 409:
+            return json_error(exc.code, 409, message=IN_PROGRESS_MESSAGE)
         return json_error(exc.code, exc.status)
     return JsonResponse(turn_presentation(outcome.turn, outcome.assistance), status=201)

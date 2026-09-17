@@ -129,10 +129,27 @@ OPENAI_API_KEY=your-key-here
 OPENAI_MODEL=gpt-5.6-luna
 ```
 
-There is no Python-specific tutoring behaviour and no learner interface yet. Tests never call the provider.
+Tests never call the provider.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates), misconception detection, next-best-action decisions and the generic AI tutor API.
-**Not yet implemented:** Python-specific tutoring, gamification and a learner interface for exercises (the Course Player). The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 8P hardens the tutor and adds Python-specific teaching.
+
+**Integrity of AI help**
+
+- **One reply at a time per exercise.** A learner can have only one tutor request in progress for each exercise; the database enforces this. A second request gets `409 tutor_turn_in_progress` and never reaches the provider, so two parallel requests can't both move up the help ladder from the same step. Requests left unfinished (for example after a crash) are closed after `max(120 s, 4 × OPENAI_TIMEOUT_SECONDS)`.
+- **The record of help comes from history.** AI help is rebuilt from completed tutor turns since the learner's latest attempt; turns keep a `completed_at` time. The per-exercise record (`TutorExerciseState`) is just a stored copy, repaired whenever it is read. `python manage.py rebuild_tutor_assistance [--enrollment-id N]` rebuilds all of these copies.
+- **Fail closed.** When an answer is submitted, the server's record of AI help is authoritative: the client can report more help, never less. If that record can't be determined, the answer is refused with `503 assistance_unavailable` instead of trusting the client. While a tutor reply for the same exercise is still being generated, submission returns `409 tutor_turn_in_progress`. With the tutor switched off, submissions work as usual.
+
+**Python teaching**
+
+- **Domains.** Each World now has a `domain` (`general` by default; Python Foundations is `python`), and the tutor picks its domain adapter from that field.
+- **What the Python tutor sees.** Beyond the generic context, it gets static facts about the learner's latest code (Python `ast` parsing only; the tutor never runs code, and the runner remains the only place code is executed). It also gets the deterministic outcome category (syntax error, runtime error, wrong output, wrong result, timeout, output limit, and so on), the mistake codes, and active and watched misconceptions as its teaching focus. Remediation targets the active misconception.
+- **How it teaches.** Its instructions ask it to teach like a programming teacher: one narrow step at a time, adapted to the learning mode (recognise, complete, fix, create) and the help level.
+- **Answer keys only at the solution stage.** The authored answer reaches the model only when the solution is granted, and only the minimum needed: the reference solution, the accepted fill-in answers, the correct option, or the expected number. Hidden tests, expected outputs and the evaluation spec never do, and answers are never stored.
+- **Leak guard.** Before the solution stage, a reply that reproduces the reference solution is rejected and never stored.
+- **Not yet built:** the Course Player (learner interface).
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates), misconception detection, next-best-action decisions and the AI tutor API with Python-specific teaching.
+**Not yet implemented:** gamification and a learner interface for exercises (the Course Player). The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -160,7 +177,8 @@ apps/learner_intelligence/ Derived learner state (mastery, retention, review), S
 apps/misconceptions/ Misconception catalog, detectors (generic + Python), derived evidence/state
                  and the rebuild_misconceptions command
 apps/next_action/ Deterministic next-best-action engine and its read-only JSON endpoint
-apps/ai_tutor/    Generic AI tutor: context builder, help ladder, providers (OpenAI, fake),
+apps/ai_tutor/    AI tutor: context builder, help ladder, providers (OpenAI, fake), domain
+                 adapters (domains/python), assistance reconstruction,
                  conversation history and the tutor JSON endpoints
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
@@ -302,6 +320,7 @@ python manage.py test                   # run the test suite (never needs Docker
 python manage.py rebuild_learner_intelligence   # recalculate learner state from attempts
 python manage.py rebuild_misconceptions          # recalculate misconceptions from attempts
 python manage.py explain_next_action <enrollment_id>   # show one learner's next action
+python manage.py rebuild_tutor_assistance        # rebuild AI help records from history
 ruff check .                            # lint
 ruff format .                           # format (use --check in CI)
 ```

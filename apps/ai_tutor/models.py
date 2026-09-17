@@ -51,6 +51,7 @@ class TutorTurn(models.Model):
     error_code = models.SlugField(max_length=64, blank=True)
 
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]
@@ -64,6 +65,13 @@ class TutorTurn(models.Model):
             ),
             models.CheckConstraint(
                 condition=Q(status__in=TurnStatus.values), name="ai_tutor_turn_status"
+            ),
+            # The reservation: at most one in-flight tutor request per learner and exercise,
+            # so two requests can never both advance help from the same state.
+            models.UniqueConstraint(
+                fields=["enrollment", "exercise"],
+                condition=Q(status=TurnStatus.PENDING, exercise__isnull=False),
+                name="ai_tutor_turn_one_pending_exercise",
             ),
         ]
         indexes = [
