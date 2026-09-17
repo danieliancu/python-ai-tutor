@@ -439,9 +439,13 @@
       node.className = "bubble" + (kind ? " " + kind : "");
       node.textContent = textValue;
       thread.appendChild(node);
-      thread.scrollTop = thread.scrollHeight;
+      // Show the start of a tutor reply (it may be long); otherwise stay at the newest message.
+      thread.scrollTop = kind ? thread.scrollHeight : node.offsetTop - 12;
       return node;
     }
+
+    // Open the conversation at its most recent messages.
+    thread.scrollTop = thread.scrollHeight;
 
     var ask = singleFlight(function () {
       var command = parseTutorCommand(input.value);

@@ -2549,6 +2549,19 @@ select.field__input {
   white-space: pre-wrap;
 }
 
+/* The real tutor conversation scrolls inside the card instead of growing the page. */
+.tutor__thread[data-tutor-thread] {
+  position: relative;
+  max-height: min(26rem, 55vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.tutor__thread[data-tutor-thread] > .bubble {
+  flex-shrink: 0;
+}
+
 .bubble--learner {
   align-self: flex-end;
   background: var(--blue-soft);
@@ -2593,6 +2606,10 @@ a.btn-outline[aria-disabled="true"] {
   .choice-list,
   .answer-field {
     padding: 14px 16px 18px;
+  }
+
+  .tutor__thread[data-tutor-thread] {
+    max-height: min(18rem, 45vh);
   }
 }
 
