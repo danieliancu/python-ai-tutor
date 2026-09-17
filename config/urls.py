@@ -11,5 +11,6 @@ urlpatterns = [
     path("app/", include("apps.attempts.urls")),
     path("app/", include("apps.learner_intelligence.urls")),
     path("app/", include("apps.next_action.urls")),
+    path("app/", include("apps.ai_tutor.urls")),
     path("admin/", admin.site.urls),
 ]

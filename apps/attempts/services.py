@@ -134,6 +134,13 @@ def record_attempt(
         duration_seconds=duration_seconds,
     )
     enrollment = resolve_enrollment(user, exercise)
+    assistance = _with_server_assistance(
+        enrollment,
+        exercise,
+        hint_level=hint_level,
+        used_explanation=used_explanation,
+        used_solution=used_solution,
+    )
     # Evaluate before touching the database: code evaluation can take seconds.
     snapshot = _evaluate(exercise, answer)
     mistakes = snapshot.pop("mistakes")
@@ -147,10 +154,8 @@ def record_attempt(
                     snapshot,
                     mistakes,
                     submitted_answer=answer,
-                    hint_level=hint_level,
-                    used_explanation=used_explanation,
-                    used_solution=used_solution,
                     duration_seconds=duration_seconds,
+                    **assistance,
                 )
             break
         except (IntegrityError, ValidationError) as exc:
@@ -164,30 +169,59 @@ def record_attempt(
     return attempt
 
 
-# Derived layers refreshed after every stored attempt, in order: (label, module, rebuild command).
-DERIVED_REFRESHES = (
-    ("Learner intelligence", "apps.learner_intelligence.services", "rebuild_learner_intelligence"),
-    ("Misconception", "apps.misconceptions.services", "rebuild_misconceptions"),
+def _with_server_assistance(enrollment, exercise, **client) -> dict:
+    """Client-reported help, raised to at least the AI tutor help the server knows about.
+
+    If the tutor record can't be read, the attempt is still stored with the client's values.
+    """
+    try:
+        # Imported lazily: the tutor app depends on attempts, not the other way round.
+        from apps.ai_tutor.assistance import merge_with_client
+
+        return merge_with_client(enrollment, exercise, **client)
+    except Exception:
+        logger.exception(
+            "Could not read tutor assistance for exercise %s; using client values.", exercise.pk
+        )
+        return client
+
+
+# Work done after every stored attempt, in order: (label, module, function, recovery hint).
+# Each step is isolated: a failure is logged and never undoes the attempt or an earlier step.
+POST_ATTEMPT_STEPS = (
+    (
+        "Learner intelligence",
+        "apps.learner_intelligence.services",
+        "refresh_for_attempt",
+        "run rebuild_learner_intelligence to recover",
+    ),
+    (
+        "Misconception",
+        "apps.misconceptions.services",
+        "refresh_for_attempt",
+        "run rebuild_misconceptions to recover",
+    ),
+    (
+        "Tutor assistance",
+        "apps.ai_tutor.assistance",
+        "record_attempt_boundary",
+        "AI help may count towards the next attempt too until the next reset",
+    ),
 )
 
 
 def _refresh_derived_state(attempt: ExerciseAttempt) -> None:
-    """Update derived state. The stored attempt matters more, so never fail here.
+    """Update derived and interaction state. The stored attempt matters more: never fail here.
 
-    Each layer refreshes in its own transaction and failures are isolated: one layer failing
-    never undoes the attempt or another layer. Rebuild commands recover anything missed.
+    Each step runs in its own transaction, so one failing never undoes the attempt or another
+    step. Rebuild commands recover anything missed.
     """
-    for label, module_path, command in DERIVED_REFRESHES:
+    for label, module_path, function, recovery in POST_ATTEMPT_STEPS:
         try:
             # Imported lazily: these apps depend on attempts, not the other way round.
-            import_module(module_path).refresh_for_attempt(attempt)
+            getattr(import_module(module_path), function)(attempt)
         except Exception:
-            logger.exception(
-                "%s refresh failed for attempt %s; run %s to recover.",
-                label,
-                attempt.pk,
-                command,
-            )
+            logger.exception("%s refresh failed for attempt %s; %s.", label, attempt.pk, recovery)
 
 
 def _is_numbering_conflict(exc: Exception) -> bool:

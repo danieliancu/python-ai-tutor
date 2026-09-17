@@ -107,8 +107,32 @@ How the rules work:
 
 Decisions are computed on each request and never stored. No AI is involved, and there is no learner interface yet. `python manage.py explain_next_action <enrollment_id> [--now ISO]` prints a decision, including the internal ranking, for debugging.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates), misconception detection and next-best-action decisions.
-**Not yet implemented:** AI tutoring and feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 8 adds a generic AI tutor (`apps/ai_tutor/`). **Django stays the source of truth**: correctness, scores, mastery, misconceptions, review dates and the next best action come only from the deterministic engines above. The model only writes the teaching reply.
+
+- **Provider.** Replies come from the OpenAI Responses API through the official SDK, with `store=false`, a strict JSON output schema (`reply`, `response_kind`, `should_retry`) and no tools. The model is set by `OPENAI_MODEL` (default `gpt-5.6-luna`). Everything provider-specific sits behind a provider interface.
+- **Context.** Each turn gets a compact, server-built context: the World, the current concept, lesson and exercise (safe presentation), the latest evaluated attempt, concept state, active and watched misconceptions, the next best action, a World summary and the last few completed tutor turns. Exercise answer keys, specs, tests and reference solutions are never included. The learner's own latest answer (up to 8 KB) is sent separately and marked as untrusted data. Learner text is never placed in the trusted instructions.
+- **Help ladder.** Intents are `ask`, `hint`, `explain`, `solution` and `next_step`. Django decides the reply level: hint → strong hint → explanation → solution. Asking for the solution straight away starts with a hint, and a reply at any other level is rejected.
+- **Assistance tracking.** AI help given on an exercise is stored and merged into the learner's next attempt: hint level uses the higher value, explanation and solution use either flag. The client can't hide it, so the Phase 6 assistance discount applies. Each new attempt resets the record. Submitting an answer never calls the AI.
+- **Conversations and usage.** Turns are stored in our database (`TutorTurn`): messages, reply level, status, model, prompt version, token usage and latency. Prompts and provider payloads are not stored.
+- **Failures and limits.** Provider failures are recorded as failed turns with a safe error code and never change learning state. Each enrollment is limited to 20 tutor requests per minute (configurable).
+
+Endpoints (session login, own active or completed enrollment; POST needs the CSRF token):
+
+- `POST /app/worlds/<id>/tutor/turns/` with `{"intent": "hint", "exercise_id": 123}` or `{"message": "Why is this wrong?", "exercise_id": 123}` → `201` with the reply and the current assistance record. Responses: `503 tutor_unavailable` when the tutor is disabled or the provider fails, `429 rate_limited`, `400 no_exercise_context` when help has no exercise to refer to.
+- `GET /app/worlds/<id>/tutor/turns/?limit=20` → your recent completed turns, oldest first (at most 50).
+
+Enable it with, for example:
+
+```bash
+AI_TUTOR_ENABLED=true
+OPENAI_API_KEY=your-key-here
+OPENAI_MODEL=gpt-5.6-luna
+```
+
+There is no Python-specific tutoring behaviour and no learner interface yet. Tests never call the provider.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates), misconception detection, next-best-action decisions and the generic AI tutor API.
+**Not yet implemented:** Python-specific tutoring, gamification and a learner interface for exercises (the Course Player). The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -136,6 +160,8 @@ apps/learner_intelligence/ Derived learner state (mastery, retention, review), S
 apps/misconceptions/ Misconception catalog, detectors (generic + Python), derived evidence/state
                  and the rebuild_misconceptions command
 apps/next_action/ Deterministic next-best-action engine and its read-only JSON endpoint
+apps/ai_tutor/    Generic AI tutor: context builder, help ladder, providers (OpenAI, fake),
+                 conversation history and the tutor JSON endpoints
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -223,6 +249,14 @@ Every setting is read from environment variables. See [.env.example](.env.exampl
 | `PYTHON_RUNNER_MAX_OUTPUT_BYTES` | `65536` | Output cap; the run is stopped when exceeded. |
 | `PYTHON_RUNNER_MAX_SOURCE_BYTES` | `65536` | Largest accepted submission. |
 | `PYTHON_RUNNER_DOCKER_BINARY` | `docker` | Path to the Docker CLI. |
+| `AI_TUTOR_ENABLED` | `false` | Boolean. The tutor also needs an API key. |
+| `OPENAI_API_KEY` | empty | Never commit a real key. |
+| `OPENAI_MODEL` | `gpt-5.6-luna` | Model used for tutor replies. |
+| `OPENAI_TIMEOUT_SECONDS` | `20` | Provider timeout (1–300). |
+| `AI_TUTOR_HISTORY_TURNS` | `8` | Completed turns sent as conversation history. |
+| `AI_TUTOR_MAX_USER_CHARS` | `4000` | Longest accepted learner message. |
+| `AI_TUTOR_MAX_OUTPUT_TOKENS` | `800` | Reply token cap. |
+| `AI_TUTOR_RATE_LIMIT_PER_MINUTE` | `20` | Tutor requests per enrollment per minute. |
 
 Booleans accept `true/false`, `1/0`, `yes/no` and `on/off`, in any case. Any other value stops startup with an error. In list values, surrounding whitespace and empty entries are ignored.
 

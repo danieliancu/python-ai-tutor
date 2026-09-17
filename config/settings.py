@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.learner_intelligence",
     "apps.misconceptions",
     "apps.next_action",
+    "apps.ai_tutor",
 ]
 
 MIDDLEWARE = [
@@ -141,6 +142,23 @@ if sys.argv[1:2] == ["test"]:
     # The normal test suite never starts containers; the opt-in Docker integration tests
     # build their own configuration.
     PYTHON_RUNNER["BACKEND"] = "disabled"
+
+# AI tutor. Off by default; the rest of the site works without it. Values are validated by
+# apps.ai_tutor.config when the app starts. Never commit a real API key.
+AI_TUTOR = {
+    "ENABLED": env_bool("AI_TUTOR_ENABLED", default=False),
+    "OPENAI_API_KEY": env_str("OPENAI_API_KEY"),
+    "OPENAI_MODEL": env_str("OPENAI_MODEL") or "gpt-5.6-luna",
+    "OPENAI_TIMEOUT_SECONDS": env_str("OPENAI_TIMEOUT_SECONDS") or "20",
+    "HISTORY_TURNS": env_str("AI_TUTOR_HISTORY_TURNS") or "8",
+    "MAX_USER_CHARS": env_str("AI_TUTOR_MAX_USER_CHARS") or "4000",
+    "MAX_OUTPUT_TOKENS": env_str("AI_TUTOR_MAX_OUTPUT_TOKENS") or "800",
+    "RATE_LIMIT_PER_MINUTE": env_str("AI_TUTOR_RATE_LIMIT_PER_MINUTE") or "20",
+}
+if sys.argv[1:2] == ["test"]:
+    # The normal test suite never calls a real provider.
+    AI_TUTOR["ENABLED"] = False
+    AI_TUTOR["OPENAI_API_KEY"] = ""
 
 # --- Internationalization -----------------------------------------------------
 
