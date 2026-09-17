@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth import views as auth_views
 from django.db import transaction
@@ -55,6 +56,8 @@ class PasswordResetView(auth_views.PasswordResetView):
     subject_template_name = "accounts/email/password_reset_subject.txt"
     form_class = PasswordResetRequestForm
     success_url = reverse_lazy("accounts:password_reset_done")
+    # Emails are rendered without a request, so context processors do not apply.
+    extra_email_context = {"product_name": settings.PRODUCT_NAME}
 
 
 class PasswordResetDoneView(auth_views.PasswordResetDoneView):

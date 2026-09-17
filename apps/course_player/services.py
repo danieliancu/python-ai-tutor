@@ -20,6 +20,8 @@ from apps.curriculum.models import Lesson, Skill
 from apps.exercises.models import Exercise, ResponseType
 from apps.exercises.presentation import exercise_presentation
 from apps.exercises.selectors import published_exercises, published_exercises_for_lesson
+from apps.gamification.bosses import boss_exercise_ids
+from apps.gamification.selectors import header_stats
 from apps.learner_intelligence.selectors import world_summary
 from apps.learners.models import Enrollment
 from apps.next_action.engine import concept_contexts, next_action_for_enrollment
@@ -29,7 +31,6 @@ QUOTE = "Small steps build extraordinary results."
 TUTOR_HISTORY_LIMIT = 12
 SKILL_WINDOW = 5
 GAP = re.compile(r"(?<!\w)__(?!\w)")
-NEUTRAL_STATS = {"level": "—", "xp": "—", "streak_days": 0}
 
 
 def player_url(world_id: int) -> str:
@@ -95,9 +96,15 @@ def skill_map(enrollment: Enrollment, current_skill_id: int | None) -> list[dict
 
 def progress_context(enrollment: Enrollment, current_skill: Skill | None, now=None) -> dict:
     summary = world_summary(enrollment, now=now)
+    # Platform-wide gamification (XP, level, streak) next to this course's own mastery.
+    stats = header_stats(enrollment.learner, today=timezone.localdate(now) if now else None)
     return {
         "progress": {
-            **NEUTRAL_STATS,
+            "level": stats["level"],
+            "xp": stats["xp_display"],
+            "streak_days": stats["streak_days"],
+            "level_percent": stats["level_percent"],
+            "course": enrollment.world.title,
             "mastery": round(summary["mastery"]),
             "current_skill": current_skill.title if current_skill else "—",
         },
@@ -125,7 +132,7 @@ def fill_gap_lines(template: str) -> list[list[dict]]:
     return lines
 
 
-def exercise_view(exercise: Exercise) -> dict:
+def exercise_view(exercise: Exercise, is_boss: bool = False) -> dict:
     public = exercise_presentation(exercise)
     content = public["content"] if isinstance(public["content"], dict) else {}
     kind = public["response_type"]
@@ -136,7 +143,8 @@ def exercise_view(exercise: Exercise) -> dict:
         "instructions": public["instructions"],
         "response_type": kind,
         "learning_mode": public["learning_mode"],
-        "kicker": text.KICKERS.get(kind, "Exercise"),
+        "kicker": text.BOSS_LABEL if is_boss else text.KICKERS.get(kind, "Exercise"),
+        "is_boss": is_boss,
         "tab": text.EDITOR_TABS.get(kind, "Your answer"),
         "supported": kind in text.SUPPORTED_TYPES,
         "is_code": kind == ResponseType.CODE,
@@ -206,7 +214,8 @@ def build_course_player_context(
     world = enrollment.world
     url = player_url(world.pk)
     decision = decision_presentation(next_action_for_enrollment(enrollment, now=now), enrollment)
-    next_up = text.next_up_view(decision, url)
+    bosses = boss_exercise_ids(world.pk)
+    next_up = text.next_up_view(decision, url, bosses)
 
     if exercise is None and decision["exercise"]:
         exercise = exercise_in_world(world.pk, decision["exercise"]["id"])
@@ -242,7 +251,7 @@ def build_course_player_context(
         current_skill = concept.skill
         number, total = lesson_position(lesson_obj)
         exercise_ids = list(published_exercises_for_lesson(lesson_obj).values_list("id", flat=True))
-        view = exercise_view(exercise)
+        view = exercise_view(exercise, is_boss=exercise.pk in bosses)
         latest = latest_attempt(enrollment, exercise)
         lesson = {
             "course": world.title,
@@ -285,7 +294,9 @@ def build_course_player_context(
             "attempts": (reverse("attempts:exercise_attempts", args=[view["id"]]) if view else ""),
             "nextAction": reverse("next_action:next_action", args=[world.pk]),
             "tutor": reverse("ai_tutor:turns", args=[world.pk]),
+            "gamification": reverse("gamification:summary"),
         },
+        "bossExerciseIds": bosses,
         "tutorAvailable": tutor_available,
         "text": {
             "actionLabels": text.ACTION_LABELS,
@@ -293,11 +304,13 @@ def build_course_player_context(
             "reasons": text.REASON_TEXT,
             "statuses": text.STATUS_LABELS,
             "tutorUnavailable": text.TUTOR_UNAVAILABLE,
+            "bossBadge": text.BOSS_LABEL,
         },
     }
     return {
         **progress,
         "lesson": lesson,
+        "course": {"title": world.title, "domain": world.domain},
         "quote": QUOTE,
         "player": {
             "world_id": world.pk,

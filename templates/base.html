@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="{% block meta_description %}Learn Python step by step with a personal AI tutor.{% endblock %}">
+  <meta name="description" content="{% block meta_description %}{{ product_name }}: learn step by step with a personal AI tutor.{% endblock %}">
   <meta name="theme-color" content="#f4f5f2">
-  <title>{% block title %}Python AI Tutor{% endblock %}</title>
+  <title>{% block title %}{{ product_name }}{% endblock %}</title>
   <script>document.documentElement.classList.replace("no-js", "js");</script>
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   <script src="{% static 'vendor/htmx.min.js' %}" defer></script>

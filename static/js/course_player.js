@@ -77,18 +77,33 @@
     return lines;
   }
 
-  function nextUpView(decision, text, playerUrl) {
+  function nextUpView(decision, text, playerUrl, bossIds) {
     var action = decision.action;
     var title = "Nothing to do right now";
     if (action === "course_complete") title = "Course complete";
     else if (decision.concept) title = decision.concept.title;
     return {
-      badge: text.actionLabels[action] || "Up next",
+      // The server marks bosses; the choice itself stays Next Best Action's.
+      badge:
+        decision.exercise && (bossIds || []).indexOf(decision.exercise.id) !== -1
+          ? text.bossBadge
+          : text.actionLabels[action] || "Up next",
       title: title,
       description: text.reasons[decision.primary_reason] || "",
       button: text.actionButtons[action] || "Continue",
       href: decision.exercise ? playerUrl + "?exercise=" + decision.exercise.id : "",
     };
+  }
+
+  // Display only: XP and achievements are decided and reported by the server.
+  function rewardLines(rewards) {
+    var lines = [];
+    if (!rewards) return lines;
+    if (rewards.xp > 0) lines.push("+" + rewards.xp + " XP");
+    (rewards.achievements || []).forEach(function (achievement) {
+      lines.push("Achievement unlocked: " + achievement.title);
+    });
+    return lines;
   }
 
   function errorMessage(body) {
@@ -128,6 +143,7 @@
     isSubmitShortcut: isSubmitShortcut,
     feedbackLines: feedbackLines,
     nextUpView: nextUpView,
+    rewardLines: rewardLines,
     errorMessage: errorMessage,
     singleFlight: singleFlight,
   };
@@ -222,6 +238,10 @@
     var gutter = form.querySelector("[data-gutter]");
     var startedAt = Date.now();
 
+    function appendLines(lines) {
+      if (lines.length) output.textContent += lines.join("\n") + "\n";
+    }
+
     function showLines(lines, isError) {
       output.textContent = lines.length ? lines.join("\n") + "\n" : "";
       if (tabOutput && tabErrors) {
@@ -273,7 +293,7 @@
             var diagnostics = attempt.diagnostics || {};
             showLines(feedbackLines(attempt, config.text.statuses), Boolean(diagnostics.error_type));
             startedAt = Date.now();
-            return refreshAfterAttempt(config);
+            return refreshAfterAttempt(config, attempt, appendLines);
           }
           if (result.status === 401) {
             root.location.reload();
@@ -342,7 +362,7 @@
     }
   }
 
-  function refreshAfterAttempt(config) {
+  function refreshAfterAttempt(config, attempt, appendLines) {
     var exerciseQuery = config.exercise ? "?exercise=" + config.exercise.id : "";
     var progress = request("GET", config.urls.progress + exerciseQuery).then(function (result) {
       if (!result.ok || typeof result.body !== "string") return;
@@ -357,9 +377,35 @@
       );
     });
     var nextUp = request("GET", config.urls.nextAction).then(function (result) {
-      if (result.ok && result.body) updateNextUp(nextUpView(result.body, config.text, config.urls.player));
+      if (result.ok && result.body) {
+        updateNextUp(
+          nextUpView(result.body, config.text, config.urls.player, config.bossExerciseIds)
+        );
+      }
     });
-    return Promise.all([progress, nextUp]).catch(function () {});
+    var stats = request(
+      "GET",
+      config.urls.gamification + "?attempt=" + encodeURIComponent(attempt.id)
+    ).then(function (result) {
+      if (!result.ok || !result.body) return;
+      updateStats(result.body);
+      appendLines(rewardLines(result.body.rewards));
+    });
+    return Promise.all([progress, nextUp, stats]).catch(function () {});
+  }
+
+  function updateStats(stats) {
+    var values = {
+      "[data-stat-streak]": stats.streak_days,
+      "[data-stat-xp]": stats.xp_display,
+      "[data-stat-level]": stats.level,
+    };
+    Object.keys(values).forEach(function (selector) {
+      var node = doc.querySelector(selector);
+      if (node) node.textContent = String(values[selector]);
+    });
+    var gauge = doc.querySelector("[data-stat-gauge]");
+    if (gauge) gauge.setAttribute("stroke-dasharray", Number(stats.level_percent) + " 100");
   }
 
   function updateNextUp(view) {

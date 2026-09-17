@@ -4,6 +4,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
+from apps.gamification.selectors import profile_summary
 from apps.learners.forms import LearnerProfileForm, OnboardingForm
 from apps.learners.services import complete_onboarding, get_or_create_learner_profile
 
@@ -43,5 +44,10 @@ def profile(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "learners/profile.html",
-        {"form": form, "profile": learner, "enrollments": enrollments},
+        {
+            "form": form,
+            "profile": learner,
+            "enrollments": enrollments,
+            "gamification": profile_summary(learner),
+        },
     )

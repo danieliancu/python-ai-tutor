@@ -7,6 +7,8 @@ from the existing services.
 from apps.attempts.mistakes import safe_diagnostics
 from apps.exercises.models import ResponseType
 
+BOSS_LABEL = "Boss Challenge"
+
 KICKERS = {
     ResponseType.CODE: "Coding Exercise",
     ResponseType.MULTIPLE_CHOICE: "Multiple Choice",
@@ -96,7 +98,7 @@ def feedback_lines(attempt: dict) -> list[str]:
     return lines
 
 
-def next_up_view(decision: dict, player_url: str) -> dict:
+def next_up_view(decision: dict, player_url: str, boss_ids=()) -> dict:
     """Card text for a public next-action payload (``decision_presentation`` shape)."""
     action = decision["action"]
     exercise = decision.get("exercise")
@@ -108,7 +110,12 @@ def next_up_view(decision: dict, player_url: str) -> dict:
     else:
         title = "Nothing to do right now"
     return {
-        "badge": ACTION_LABELS.get(action, "Up next"),
+        # A boss is still the pedagogical choice; it is only labelled as a checkpoint.
+        "badge": (
+            BOSS_LABEL
+            if exercise and exercise["id"] in boss_ids
+            else ACTION_LABELS.get(action, "Up next")
+        ),
         "title": title,
         "description": REASON_TEXT.get(decision["primary_reason"], ""),
         "button": ACTION_BUTTONS.get(action, "Continue"),

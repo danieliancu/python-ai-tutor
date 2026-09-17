@@ -14,6 +14,8 @@ DEMO_PROGRESS = {
     "streak_days": 12,
     "mastery": 31,
     "current_skill": "Loops",
+    "course": "Python Foundations",
+    "level_percent": 70,
 }
 
 DEMO_SKILLS = [
@@ -29,7 +31,7 @@ DEMO_SKILLS = [
 ]
 
 DEMO_LESSON = {
-    "course": "Python Basics",
+    "course": "Python Foundations",
     "title": "Loops",
     "description": "Use loops to repeat actions and work with data more efficiently.",
     "number": 4,

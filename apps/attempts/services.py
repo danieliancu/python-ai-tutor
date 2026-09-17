@@ -202,6 +202,12 @@ POST_ATTEMPT_STEPS = (
         "run rebuild_misconceptions to recover",
     ),
     (
+        "Gamification",
+        "apps.gamification.services",
+        "refresh_for_attempt",
+        "run rebuild_gamification to recover",
+    ),
+    (
         "Tutor assistance",
         "apps.ai_tutor.assistance",
         "record_attempt_boundary",

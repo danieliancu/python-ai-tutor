@@ -69,6 +69,15 @@ class Command(BaseCommand):
             f"Exercises: {stats['created']} created, {stats['updated']} updated "
             f"({len(by_lesson)} lessons)"
         )
+        # Mark the checkpoint exercises as Boss Challenges (imported lazily: gamification
+        # builds on exercises, not the other way round).
+        from apps.gamification.bosses import sync_bosses
+
+        bosses = sync_bosses(WORLD_SLUG)
+        self.stdout.write(
+            f"Boss Challenges: {bosses['created']} created, {bosses['updated']} updated"
+            + (f" (missing: {', '.join(bosses['missing'])})" if bosses["missing"] else "")
+        )
         self.stdout.write(self.style.SUCCESS(f"Python Foundations now has {total} exercises."))
 
     @staticmethod

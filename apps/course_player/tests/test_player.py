@@ -12,7 +12,7 @@ from apps.next_action.engine import next_action_for_enrollment
 
 DEMO_VALUES = (
     "7,840",
-    "Level </span>14",
+    "data-stat-level>14<",
     "31%",
     "Demo preview",
     "Build a Number Analyzer",
@@ -44,9 +44,9 @@ class PlayerContentTests(PlayerFixtures, TestCase):
             with self.subTest(value=value):
                 self.assertNotIn(value, html)
         progress = response.context["progress"]
-        self.assertEqual(
-            (progress["xp"], progress["level"], progress["streak_days"]), ("—", "—", 0)
-        )
+        # Real gamification for a learner who hasn't earned anything yet.
+        self.assertEqual((progress["xp"], progress["level"], progress["streak_days"]), ("0", 1, 0))
+        self.assertEqual(progress["level_percent"], 0)
         self.assertEqual(progress["mastery"], 0)
         self.assertNotIn("Loops", [skill["name"] for skill in response.context["skills"]])
 

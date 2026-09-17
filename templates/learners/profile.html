@@ -1,6 +1,6 @@
 {% extends "layouts/auth.html" %}
 
-{% block title %}Your profile · Python AI Tutor{% endblock %}
+{% block title %}Your profile · {{ product_name }}{% endblock %}
 {% block card_class %} auth-card--wide{% endblock %}
 {% block card_kicker %}<p class="auth-card__kicker">Account</p>{% endblock %}
 {% block card_title %}Your profile{% endblock %}
@@ -30,6 +30,35 @@
       {% include "includes/field.html" with field=form.timezone %}
       <button type="submit" class="btn-primary btn-primary--inline">Save changes</button>
     </form>
+  </section>
+
+  <section class="profile-section" aria-labelledby="progress-title">
+    <h2 id="progress-title" class="profile-section__title">Progress</h2>
+    <dl class="summary-list">
+      <div><dt>Level</dt><dd>{{ gamification.level }}</dd></div>
+      <div><dt>Total XP</dt><dd>{{ gamification.xp_display }}</dd></div>
+      <div><dt>Current streak</dt><dd>{{ gamification.streak_days }} day{{ gamification.streak_days|pluralize }}</dd></div>
+      <div><dt>Longest streak</dt><dd>{{ gamification.longest_streak }} day{{ gamification.longest_streak|pluralize }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="profile-section" aria-labelledby="achievements-title">
+    <h2 id="achievements-title" class="profile-section__title">Achievements · {{ gamification.awards|length }} of {{ gamification.achievement_total }}</h2>
+    {% if gamification.awards %}
+      <ul class="enrollment-list">
+        {% for award in gamification.awards %}
+          <li class="enrollment">
+            <div>
+              <p class="enrollment__title">{{ award.achievement.title }}</p>
+              <p class="enrollment__meta">{{ award.achievement.description }} · Earned {{ award.awarded_at|date:"j M Y" }}</p>
+            </div>
+            <span class="status-badge status-badge--{{ award.achievement.rarity }}"><span class="visually-hidden">Rarity: </span>{{ award.achievement.get_rarity_display }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="profile-section__empty">No achievements yet. Complete your first exercise to earn one.</p>
+    {% endif %}
   </section>
 
   <section class="profile-section" aria-labelledby="enrollments-title">

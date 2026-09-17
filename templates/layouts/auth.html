@@ -9,7 +9,7 @@
     <header class="auth-header">
       <a class="brand" href="{% url 'home' %}">
         {% include "includes/brand_mark.html" with brand_id="auth" %}
-        <span class="brand__name">Python AI Tutor</span>
+        <span class="brand__name">{{ product_name }}</span>
       </a>
       <div class="auth-header__actions">
         <a class="auth-header__link" href="{% url 'home' %}">Back to home</a>

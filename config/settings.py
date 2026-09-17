@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "apps.next_action",
     "apps.ai_tutor",
     "apps.course_player",
+    "apps.gamification",
 ]
 
 MIDDLEWARE = [
@@ -77,6 +78,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "config.context_processors.product",
             ],
         },
     },
@@ -117,11 +119,16 @@ AUTH_PASSWORD_VALIDATORS = [
 if sys.argv[1:2] == ["test"]:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
+# --- Product -------------------------------------------------------------------
+
+# The platform brand. Courses (Worlds) carry their own titles; "AI Tutor" is a feature name.
+PRODUCT_NAME = "cursuri.net"
+
 # --- Email ---------------------------------------------------------------------
 
 # Password reset emails print to the console unless a real backend is configured.
 EMAIL_BACKEND = env_str("DJANGO_EMAIL_BACKEND") or "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = env_str("DJANGO_DEFAULT_FROM_EMAIL") or "Python AI Tutor <no-reply@localhost>"
+DEFAULT_FROM_EMAIL = env_str("DJANGO_DEFAULT_FROM_EMAIL") or f"{PRODUCT_NAME} <no-reply@localhost>"
 
 # --- Python code runner -------------------------------------------------------
 

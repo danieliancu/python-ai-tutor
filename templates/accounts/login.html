@@ -1,6 +1,6 @@
 {% extends "layouts/auth.html" %}
 
-{% block title %}Sign in · Python AI Tutor{% endblock %}
+{% block title %}Sign in · {{ product_name }}{% endblock %}
 {% block card_title %}Welcome back{% endblock %}
 {% block card_intro %}<p class="auth-card__intro">Sign in to continue learning.</p>{% endblock %}
 
@@ -14,5 +14,5 @@
     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     <button type="submit" class="btn-primary">Sign in</button>
   </form>
-  <p class="auth-card__footer">New to Python AI Tutor? <a href="{% url 'accounts:signup' %}">Create an account</a></p>
+  <p class="auth-card__footer">New to {{ product_name }}? <a href="{% url 'accounts:signup' %}">Create an account</a></p>
 {% endblock %}

@@ -12,6 +12,7 @@ urlpatterns = [
     path("app/", include("apps.learner_intelligence.urls")),
     path("app/", include("apps.next_action.urls")),
     path("app/", include("apps.ai_tutor.urls")),
+    path("app/", include("apps.gamification.urls")),
     path("learn/", include("apps.course_player.urls")),
     path("admin/", admin.site.urls),
 ]

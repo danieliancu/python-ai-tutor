@@ -1,4 +1,4 @@
-/* Python AI Tutor — Phase 1 product shell.
+/* cursuri.net — product shell.
    A soft, light learning app floating over a calm, blurred landscape. */
 
 /* --- Tokens ------------------------------------------------------------------ */
@@ -2594,4 +2594,22 @@ a.btn-outline[aria-disabled="true"] {
   .answer-field {
     padding: 14px 16px 18px;
   }
+}
+
+/* --- Achievement rarity (profile) — reuses the status badge palette ------------------- */
+
+.status-badge--common {
+  background: var(--blue-soft);
+  color: #1c4fc4;
+}
+
+.status-badge--uncommon {
+  background: #ecfdf3;
+  color: #05603a;
+}
+
+.status-badge--rare,
+.status-badge--epic {
+  background: #fffaeb;
+  color: #93370d;
 }

@@ -112,6 +112,28 @@ test("next up comes straight from the server decision", () => {
   );
   assert.equal(done.title, "Course complete");
   assert.equal(done.href, "");
+
+  // Boss exercises are only labelled; the server supplies which ones they are.
+  const bossText = Object.assign({ bossBadge: "Boss Challenge" }, text);
+  const decision = {
+    action: "review",
+    primary_reason: "review_due",
+    concept: { id: 3, title: "Loops" },
+    exercise: { id: 42 },
+  };
+  assert.equal(nextUpView(decision, bossText, "/p/", [42]).badge, "Boss Challenge");
+  assert.equal(nextUpView(decision, bossText, "/p/", [7]).badge, "Review");
+  assert.equal(nextUpView(decision, bossText, "/p/", [42]).href, "/p/?exercise=42");
+});
+
+test("reward lines only repeat what the server reported", () => {
+  const { rewardLines } = helpers;
+  assert.deepEqual(rewardLines(undefined), []);
+  assert.deepEqual(rewardLines({ xp: 0, achievements: [] }), []);
+  assert.deepEqual(
+    rewardLines({ xp: 30, achievements: [{ title: "First Step", description: "x" }] }),
+    ["+30 XP", "Achievement unlocked: First Step"]
+  );
 });
 
 test("error messages are friendly and never raw", () => {

@@ -1,6 +1,14 @@
-# Cursuri Python
+# cursuri.net
 
-This is the Django foundation for a SaaS product: a Python tutor with a personal AI tutor. Phase 0 set up the project structure, configuration, a custom user model, admin and a health check. Phase 1 adds the product shell, a static demo of the learning interface on the homepage. It is presentation only: the progress, skill map, lesson, editor and tutor content on the page are placeholder data.
+**cursuri.net** is a learning platform. It hosts courses, called Worlds in the code: Python Foundations today, with Django, Data Analysis, AI, Automation, AI Agents, English and more to come. Each course has its own curriculum and a personal **AI Tutor**, which is a feature of the platform rather than its name.
+
+```
+cursuri.net            the platform (settings.PRODUCT_NAME)
+  └─ Course / World    Python Foundations, Django, … (World.title, World.domain)
+       └─ AI Tutor     tutoring inside a course
+```
+
+This repository started as the Django foundation for that product, beginning with Python. Phase 0 set up the project structure, configuration, a custom user model, admin and a health check. Phase 1 adds the product shell, a static demo of the learning interface on the homepage. It is presentation only: the progress, skill map, lesson, editor and tutor content on the page are placeholder data.
 
 Phase 2 adds the curriculum engine:
 
@@ -168,8 +176,63 @@ Learner flow: sign in → `/` sends you to your course (`/learn/worlds/<id>/`, y
 - Practice, Projects, Community, search and the feedback thumbs stay inactive.
 - Signed-out visitors still see the static demo.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state, misconception detection, next-best-action decisions, the AI tutor with Python-specific teaching and the browser Course Player.
-**Not yet implemented:** gamification (XP, streaks, levels), Practice, Projects, Community, search, voice, streaming replies and billing.
+Phase 9 adds **gamification** (`apps/gamification/`) and the **cursuri.net** brand. Gamification rewards learning but never decides it: evaluation still decides correctness, Learner Intelligence mastery, the Misconception Engine misconceptions and Next Best Action what comes next. XP never raises mastery, and levels, streaks and achievements never unlock content. Everything is generic (any World, any domain) and computed on the server.
+
+**Branding.** The top-left brand, page titles (`<lesson> · <course> · cursuri.net`), footer, account pages and emails use `settings.PRODUCT_NAME` through the `config.context_processors.product` context processor. The current course comes from the World: the breadcrumb and the mastery title (for example "Python Foundations Mastery"). Nothing generic hardcodes Python. The signed-out demo still shows Python Foundations content under the cursuri.net brand.
+
+**XP.** XP is platform-wide per learner: the header shows one total across all courses. Each award is an `XPEvent` that keeps its World and enrollment for later per-course analytics. The event log is the source of truth, and `GamificationProfile.total_xp` is a recomputable summary.
+
+| Award | XP | When |
+|---|---|---|
+| Exercise completed | 20 | The first correct attempt at an exercise |
+| First-try bonus | 5 | The learner's very first attempt at that exercise was correct |
+| Independence bonus | 5 | That first correct attempt used no hints, explanation or solution (server-recorded `hint_level`, `used_explanation`, `used_solution`) |
+| Skill mastered | 50 | Every published concept in a Skill first reaches the mastered band |
+| Boss completed | 100 (`bonus_xp`) | A Boss Challenge's exercise is first answered correctly |
+
+- **Once per learner.** Each award has a unique `(learner, source_key)` database constraint, so retries, repeated correct answers, concurrent submissions and rebuilds never award XP twice.
+- **Never taken away.** XP is never negative and is never removed, even if retention later drops.
+- **Help costs nothing but the bonus.** Using AI help only means no independence bonus.
+- **What earns nothing.** Page views, tutor questions, wrong answers and answers that couldn't be judged (`invalid`, `unsupported`, `unavailable`) never earn XP.
+
+**Levels.** Levels are derived from XP and never stored. Reaching level N takes `100 × N × (N − 1) / 2` XP: level 2 at 100, level 3 at 300, level 4 at 600, level 5 at 1000. All level maths lives in `apps/gamification/levels.py`. The header gauge shows progress from the current level's threshold to the next.
+
+**Streaks.** A streak counts consecutive calendar days, in Django's configured time zone (`TIME_ZONE`), with at least one judged attempt (`correct`, `incorrect` or `review_required`) in any course.
+- Many attempts on one day count as one day.
+- A streak stays alive through the day after the last activity and breaks after that.
+- The longest streak is kept.
+
+**Achievements.** Achievements are non-repeatable, awarded by the server and seeded by a migration. They are listed on the profile page, and a new one is also mentioned in the exercise output right after the attempt that earned it.
+
+| Achievement | Rarity | Earned by |
+|---|---|---|
+| First Step | common | First correctly completed exercise |
+| Independent Thinker | uncommon | A correct completion without hints, explanation or solution |
+| On a Roll | common | A 3-day streak |
+| Consistent Learner | rare | A 7-day streak |
+| Skill Mastered | rare | First fully mastered Skill |
+| Boss Cleared | epic | First Boss Challenge |
+| Ten Down | uncommon | 10 different exercises completed correctly |
+
+**Boss Challenges.** A `BossChallenge` marks an existing Exercise as a checkpoint. The prompt, evaluation and runner stay on the Exercise, and the checkpoint is not a project system: Phase 10 Projects are not implemented yet.
+- **Availability.** A boss follows the normal curriculum, prerequisites and Next Best Action. Being a boss never unlocks anything.
+- **Python Foundations bosses.** `seed_python_exercises` marks four existing CREATE code exercises:
+  - `ticket-price` (decisions)
+  - `years-to-double` (loops)
+  - `bank-account` (OOP)
+  - `full-class-report` (the capstone)
+- **Completion.** A boss is completed once per enrollment (`BossCompletion`).
+- **Display.** When the current exercise, or the one Next Best Action recommends, is a boss, the Course Player labels it "Boss Challenge".
+
+**In the Course Player**
+- The header shows the real XP, level (with gauge) and streak.
+- After an attempt, the page reads `GET /app/gamification/summary/?attempt=<id>`. The response carries the updated stats plus what that attempt earned (for example "+30 XP" or "Achievement unlocked: First Step"). The browser only displays these values and never calculates them.
+- Anonymous visitors keep the demo numbers.
+
+**Recovery.** Gamification runs after learner intelligence and misconceptions in the post-attempt steps. A failure is logged and never undoes the attempt. `python manage.py rebuild_gamification` (optionally `--learner-id` or `--enrollment-id`) recomputes XP, levels, streaks, boss completions and achievements from stored attempts. Running it again changes nothing. Attempts made before Phase 9 are fully covered, including the first-try and independence bonuses. Skill-mastery milestones are reconciled from the *current* learner-intelligence state, so a skill mastered in the past and since decayed is not rewarded retroactively. The admin lists every Phase 9 model; there are no leaderboards and no virtual currency.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state, misconception detection, next-best-action decisions, the AI tutor with Python-specific teaching, the browser Course Player and gamification (XP, levels, streaks, achievements, Boss Challenges).
+**Not yet implemented:** Phase 10 Projects, Practice, Community, search, leaderboards, voice, streaming replies and billing.
 
 ## Stack
 
@@ -198,6 +261,8 @@ apps/misconceptions/ Misconception catalog, detectors (generic + Python), derive
                  and the rebuild_misconceptions command
 apps/next_action/ Deterministic next-best-action engine and its read-only JSON endpoint
 apps/course_player/ The learner Course Player: real data and interactions for the product shell
+apps/gamification/ XP events, levels, streaks, achievements, Boss Challenges, the stats summary
+                 endpoint and the rebuild_gamification command
 apps/ai_tutor/    AI tutor: context builder, help ladder, providers (OpenAI, fake), domain
                  adapters (domains/python), assistance reconstruction,
                  conversation history and the tutor JSON endpoints
@@ -307,7 +372,7 @@ Every setting is read from environment variables. See [.env.example](.env.exampl
 | `DJANGO_SECURE_HSTS_SECONDS` | `0` | Only applies when DEBUG is off. Increase it gradually once HTTPS is confirmed. |
 | `DJANGO_SECURE_PROXY_SSL_HEADER` | `false` | See the warning below. |
 | `DJANGO_EMAIL_BACKEND` | console backend | Where password reset emails go. Use `django.core.mail.backends.smtp.EmailBackend` (plus Django's `EMAIL_*` settings) for real delivery. |
-| `DJANGO_DEFAULT_FROM_EMAIL` | `Python AI Tutor <no-reply@localhost>` | Sender address for account emails. |
+| `DJANGO_DEFAULT_FROM_EMAIL` | `cursuri.net <no-reply@localhost>` | Sender address for account emails. |
 | `PYTHON_RUNNER_BACKEND` | `disabled` | `docker` enables code execution. Anything else keeps code exercises unchecked. |
 | `PYTHON_RUNNER_IMAGE` | `python:3.11-slim` | Runner image. It is never pulled automatically. |
 | `PYTHON_RUNNER_TIMEOUT_SECONDS` | `3` | Time limit per run (0.1–60). |
@@ -371,6 +436,7 @@ python manage.py rebuild_learner_intelligence   # recalculate learner state from
 python manage.py rebuild_misconceptions          # recalculate misconceptions from attempts
 python manage.py explain_next_action <enrollment_id>   # show one learner's next action
 python manage.py rebuild_tutor_assistance        # rebuild AI help records from history
+python manage.py rebuild_gamification            # rebuild XP, streaks, bosses and achievements
 ruff check .                            # lint
 ruff format .                           # format (use --check in CI)
 ```

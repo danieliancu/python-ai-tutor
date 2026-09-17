@@ -28,7 +28,7 @@ class PasswordResetTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         message = mail.outbox[0]
         self.assertEqual(message.to, ["daniel@example.com"])
-        self.assertEqual(message.subject, "Reset your Python AI Tutor password")
+        self.assertEqual(message.subject, "Reset your cursuri.net password")
         self.assertIn("/accounts/reset/", message.body)
         self.assertNotIn(PASSWORD, message.body)
 

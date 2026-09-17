@@ -43,15 +43,15 @@ class ProductShellTests(TestCase):
         self.assertContains(self.response, "<dd>Loops</dd>", html=True)
         self.assertContains(self.response, 'aria-current="step"', count=1)
 
-    def test_python_mastery_renders(self) -> None:
-        self.assertContains(self.response, "Python Mastery")
+    def test_course_mastery_renders(self) -> None:
+        self.assertContains(self.response, "Python Foundations Mastery")
         self.assertContains(self.response, "31%")
 
     def test_static_demo_stats_render(self) -> None:
         for text in (
-            '<span class="stat__word">Level </span>14',
-            "XP</span> 7,840",
-            '12<span class="stat__word"> days</span>',
+            '<span class="stat__word">Level </span><span data-stat-level>14</span>',
+            "XP</span> <span data-stat-xp>7,840</span>",
+            '<span data-stat-streak>12</span><span class="stat__word"> days</span>',
             "<dd>12 days</dd>",
         ):
             with self.subTest(text=text):
