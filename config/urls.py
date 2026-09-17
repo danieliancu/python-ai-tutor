@@ -14,5 +14,6 @@ urlpatterns = [
     path("app/", include("apps.ai_tutor.urls")),
     path("app/", include("apps.gamification.urls")),
     path("learn/", include("apps.course_player.urls")),
+    path("learn/", include("apps.projects.urls")),
     path("admin/", admin.site.urls),
 ]

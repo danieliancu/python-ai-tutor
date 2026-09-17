@@ -46,6 +46,7 @@ class XPEventType(models.TextChoices):
     INDEPENDENCE = "independence", "Independence bonus"
     SKILL_MASTERED = "skill_mastered", "Skill mastered"
     BOSS_COMPLETED = "boss_completed", "Boss completed"
+    PROJECT_COMPLETED = "project_completed", "Project completed"
 
 
 class XPEvent(models.Model):
@@ -60,6 +61,13 @@ class XPEvent(models.Model):
     )
     attempt = models.ForeignKey(
         ExerciseAttempt,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="xp_events",
+    )
+    project_submission = models.ForeignKey(
+        "projects.ProjectSubmission",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -134,9 +142,17 @@ class AchievementAward(models.Model):
     world = models.ForeignKey(
         World, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
-    # The attempt that triggered the award, used to tell the learner right after it.
+    # The attempt (or project submission) that triggered the award, used to tell the learner
+    # right after it.
     attempt = models.ForeignKey(
         ExerciseAttempt, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    project_submission = models.ForeignKey(
+        "projects.ProjectSubmission",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
     )
     awarded_at = models.DateTimeField(auto_now_add=True)
 

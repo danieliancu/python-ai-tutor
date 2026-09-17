@@ -124,8 +124,15 @@ class DockerBackend:
     def _write_files(directory: Path, files: dict[str, str]) -> None:
         # The container runs as an unprivileged user, so the files must be world-readable.
         os.chmod(directory, 0o755)
+        root = directory.resolve()
         for filename, text in files.items():
-            path = directory / filename
+            path = (directory / filename).resolve()
+            # Only top-level files and one level of fixture files; never outside the mount.
+            if root not in path.parents or len(path.relative_to(root).parts) > 2:
+                raise ValueError(f"Refusing to write sandbox file {filename!r}.")
+            if path.parent != root and not path.parent.exists():
+                path.parent.mkdir()
+                os.chmod(path.parent, 0o755)
             path.write_text(text, encoding="utf-8")
             os.chmod(path, 0o644)
 

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "apps.ai_tutor",
     "apps.course_player",
     "apps.gamification",
+    "apps.projects",
 ]
 
 MIDDLEWARE = [

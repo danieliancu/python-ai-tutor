@@ -10,6 +10,7 @@ from typing import Protocol
 from apps.python_runner.config import RunnerConfig, get_runner_config
 from apps.python_runner.docker_backend import DockerBackend, docker_available
 from apps.python_runner.exceptions import SourceRejected
+from apps.python_runner.fixtures import FIXTURE_DIR, validate_fixture_files
 from apps.python_runner.results import (
     FunctionCallResult,
     ProcessOutcome,
@@ -19,7 +20,9 @@ from apps.python_runner.results import (
 
 LEARNER_FILE = "learner.py"
 HARNESS_FILE = "harness.py"
-HARNESS_PATH = Path(__file__).resolve().parent / "sandbox" / "harness.py"
+BOOTSTRAP_FILE = "bootstrap.py"
+SANDBOX_SOURCE_DIR = Path(__file__).resolve().parent / "sandbox"
+HARNESS_PATH = SANDBOX_SOURCE_DIR / "harness.py"
 ERROR_TYPE_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 TRACEBACK_ERROR_LINE = re.compile(r"^([A-Za-z_][\w.]*)(?::|$)")
 HARNESS_ERRORS = {
@@ -37,6 +40,23 @@ class Backend(Protocol):
 @cache
 def harness_source() -> str:
     return HARNESS_PATH.read_text(encoding="utf-8")
+
+
+@cache
+def bootstrap_source() -> str:
+    return (SANDBOX_SOURCE_DIR / BOOTSTRAP_FILE).read_text(encoding="utf-8")
+
+
+def sandbox_launch(
+    files: dict[str, str], script: str, extra_files: dict[str, str] | None
+) -> tuple[dict[str, str], list[str]]:
+    """Files and argv for running ``script``; fixture files go through the bootstrap."""
+    if not extra_files:
+        return files, [f"/sandbox/{script}"]
+    fixtures = validate_fixture_files(extra_files)
+    files = {**files, BOOTSTRAP_FILE: bootstrap_source()}
+    files.update({f"{FIXTURE_DIR}/{name}": text for name, text in fixtures.items()})
+    return files, [f"/sandbox/{BOOTSTRAP_FILE}", f"/sandbox/{script}"]
 
 
 def validate_source(source: object, config: RunnerConfig) -> str:
@@ -81,10 +101,16 @@ class PythonRunner:
         self.config = config
         self.backend = backend or DockerBackend(config)
 
-    def run_program(self, source: str, stdin: str = "") -> PythonRunResult:
-        """Run the source as a script with ``stdin`` and report its output."""
+    def run_program(
+        self, source: str, stdin: str = "", extra_files: dict[str, str] | None = None
+    ) -> PythonRunResult:
+        """Run the source as a script with ``stdin`` and report its output.
+
+        ``extra_files`` are private fixture files placed in the program's working directory.
+        """
         validate_source(source, self.config)
-        outcome = self.backend.execute({LEARNER_FILE: source}, [f"/sandbox/{LEARNER_FILE}"], stdin)
+        files, argv = sandbox_launch({LEARNER_FILE: source}, LEARNER_FILE, extra_files)
+        outcome = self.backend.execute(files, argv, stdin)
         stderr = _decode(outcome.stderr)
         if outcome.output_limited:
             status = RunStatus.OUTPUT_LIMIT
@@ -106,7 +132,11 @@ class PythonRunner:
         )
 
     def run_functions(
-        self, source: str, function_name: str, calls: list[tuple[list, dict]]
+        self,
+        source: str,
+        function_name: str,
+        calls: list[tuple[list, dict]],
+        extra_files: dict[str, str] | None = None,
     ) -> list[FunctionCallResult]:
         """Call the learner's function once per (args, kwargs), in order, in one container.
 
@@ -122,11 +152,10 @@ class PythonRunner:
                 "marker": marker,
             }
         )
-        outcome = self.backend.execute(
-            {LEARNER_FILE: source, HARNESS_FILE: harness_source()},
-            [f"/sandbox/{HARNESS_FILE}"],
-            request,
+        files, argv = sandbox_launch(
+            {LEARNER_FILE: source, HARNESS_FILE: harness_source()}, HARNESS_FILE, extra_files
         )
+        outcome = self.backend.execute(files, argv, request)
         if outcome.output_limited:
             return [FunctionCallResult(RunStatus.OUTPUT_LIMIT)] * len(calls)
         if outcome.timed_out:

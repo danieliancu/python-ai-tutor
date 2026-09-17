@@ -61,6 +61,25 @@
     {% endif %}
   </section>
 
+  <section class="profile-section" aria-labelledby="projects-title">
+    <h2 id="projects-title" class="profile-section__title">Projects</h2>
+    {% if completed_projects %}
+      <ul class="enrollment-list">
+        {% for completion in completed_projects %}
+          <li class="enrollment">
+            <div>
+              <p class="enrollment__title">{{ completion.project.title }}</p>
+              <p class="enrollment__meta">{{ completion.enrollment.world.title }} · Completed {{ completion.completed_at|date:"j M Y" }}</p>
+            </div>
+            <span class="status-badge status-badge--completed"><span class="visually-hidden">Status: </span>Completed</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="profile-section__empty">No completed projects yet. Projects unlock as you learn.</p>
+    {% endif %}
+  </section>
+
   <section class="profile-section" aria-labelledby="enrollments-title">
     <h2 id="enrollments-title" class="profile-section__title">Learning paths</h2>
     {% if enrollments %}

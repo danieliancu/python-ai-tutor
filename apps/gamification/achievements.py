@@ -1,7 +1,7 @@
 """The achievement catalogue. Rules live in services; this is the seeded definition data.
 
-Migration 0002 keeps its own frozen copy, so editing this list later needs a new migration
-(or an update in the admin).
+Migrations 0002 and 0004 keep their own frozen copies, so editing this list later needs a new
+migration (or an update in the admin).
 """
 
 FIRST_STEP = "first-step"
@@ -11,6 +11,7 @@ CONSISTENT_LEARNER = "consistent-learner"
 SKILL_MASTERED = "skill-mastered"
 BOSS_CLEARED = "boss-cleared"
 TEN_DOWN = "ten-down"
+PROJECT_BUILDER = "project-builder"
 
 ACHIEVEMENTS = (
     {
@@ -68,5 +69,13 @@ ACHIEVEMENTS = (
         "icon_key": "target",
         "rarity": "uncommon",
         "order": 7,
+    },
+    {
+        "code": PROJECT_BUILDER,
+        "title": "Project Builder",
+        "description": "Complete your first project.",
+        "icon_key": "hammer",
+        "rarity": "rare",
+        "order": 8,
     },
 )

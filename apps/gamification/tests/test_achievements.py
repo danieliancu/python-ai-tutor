@@ -25,7 +25,7 @@ class AchievementTests(GamificationFixtures, TestCase):
             list(Achievement.objects.values_list("code", flat=True)),
             [definition["code"] for definition in codes.ACHIEVEMENTS],
         )
-        self.assertEqual(len(codes.ACHIEVEMENTS), 7)
+        self.assertEqual(len(codes.ACHIEVEMENTS), 8)
 
     def test_first_step_and_independent_thinker(self) -> None:
         attempt = self.correct_mcq()

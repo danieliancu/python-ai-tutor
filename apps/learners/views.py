@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 from apps.gamification.selectors import profile_summary
 from apps.learners.forms import LearnerProfileForm, OnboardingForm
 from apps.learners.services import complete_onboarding, get_or_create_learner_profile
+from apps.projects.selectors import completed_projects
 
 
 @login_required
@@ -49,5 +50,6 @@ def profile(request: HttpRequest) -> HttpResponse:
             "profile": learner,
             "enrollments": enrollments,
             "gamification": profile_summary(learner),
+            "completed_projects": completed_projects(learner),
         },
     )

@@ -31,6 +31,10 @@
     invalid_input: "That answer couldn't be sent. Check it and try again.",
     forbidden: "You don't have access to this right now.",
     authentication_required: "Your session has ended. Please sign in again.",
+    stage_locked: "Finish the previous stage first.",
+    project_locked: "This project isn't unlocked yet.",
+    source_too_large: "Your program is too long to save.",
+    invalid_source: "Your code contains characters that can't be saved.",
   };
   var GENERIC_ERROR = "Something went wrong. Please try again.";
   var NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
@@ -250,14 +254,7 @@
       }
     }
 
-    function syncGutter() {
-      if (!code || !gutter) return;
-      var count = code.value.split("\n").length;
-      var numbers = [];
-      for (var i = 1; i <= count; i += 1) numbers.push(String(i));
-      gutter.textContent = numbers.join("\n");
-      gutter.scrollTop = code.scrollTop;
-    }
+    var syncGutter = setupCodeEditor(code, gutter);
 
     function readAnswer() {
       var type = config.exercise.responseType;
@@ -339,6 +336,18 @@
       });
     }
 
+  }
+
+  // Line numbers and Tab indentation for a code textarea. Returns the gutter refresh function.
+  function setupCodeEditor(code, gutter) {
+    function syncGutter() {
+      if (!code || !gutter) return;
+      var count = code.value.split("\n").length;
+      var numbers = [];
+      for (var i = 1; i <= count; i += 1) numbers.push(String(i));
+      gutter.textContent = numbers.join("\n");
+      gutter.scrollTop = code.scrollTop;
+    }
     if (code) {
       code.addEventListener("input", syncGutter);
       code.addEventListener("scroll", syncGutter);
@@ -360,6 +369,7 @@
       });
       syncGutter();
     }
+    return syncGutter;
   }
 
   function refreshAfterAttempt(config, attempt, appendLines) {
@@ -427,7 +437,8 @@
 
   // --- Tutor ------------------------------------------------------------------------------
 
-  function setupTutor(config) {
+  // ``extendPayload`` lets another page (the project workspace) add its own request fields.
+  function setupTutor(config, extendPayload) {
     var form = doc.querySelector("[data-tutor-form]");
     var thread = doc.querySelector("[data-tutor-thread]");
     if (!form || !thread) return;
@@ -451,7 +462,10 @@
       var command = parseTutorCommand(input.value);
       if (command.intent === "ask" && !command.message) return null;
       var payload = { intent: command.intent, message: command.message };
-      if (config.exercise && command.intent !== "next_step") payload.exercise_id = config.exercise.id;
+      if (extendPayload) extendPayload(payload);
+      else if (config.exercise && command.intent !== "next_step") {
+        payload.exercise_id = config.exercise.id;
+      }
       send.disabled = true;
       input.setAttribute("aria-busy", "true");
       var typed = input.value;
@@ -492,6 +506,20 @@
   }
 
   // --- Boot -------------------------------------------------------------------------------
+
+  // Shared with static/js/projects.js; all decisions stay on the server.
+  root.CursuriUI = {
+    request: request,
+    setupCodeEditor: setupCodeEditor,
+    setupTutor: setupTutor,
+    singleFlight: singleFlight,
+    errorMessage: errorMessage,
+    boundedDuration: boundedDuration,
+    isSubmitShortcut: isSubmitShortcut,
+    rewardLines: rewardLines,
+    updateStats: updateStats,
+    networkError: NETWORK_ERROR,
+  };
 
   function boot() {
     setupProgressToggle();

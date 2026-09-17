@@ -2630,3 +2630,242 @@ a.btn-outline[aria-disabled="true"] {
   background: #fffaeb;
   color: #93370d;
 }
+
+/* --- Projects (Phase 10) — reuses the exercise card, badge and skill-map styles -------- */
+
+.project-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-list .exercise {
+  margin-top: 0;
+}
+
+.project-card .exercise__head,
+.project-detail .exercise__head {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
+.project-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-card__link,
+.project-stage__link,
+.project-stage-list__name a,
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.project-card__link:hover,
+.project-stage__link:hover,
+.project-stage-list__name a:hover,
+.breadcrumb a:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.project-card__progress,
+.project-card__requires {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.project-card__requires {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.project-card[data-state="locked"] .exercise__number {
+  background: var(--locked-line);
+}
+
+.project-state {
+  flex: none;
+}
+
+.project-state--available,
+.project-state--in_progress {
+  border-color: transparent;
+  background: var(--blue-soft);
+  color: #1c4fc4;
+}
+
+.project-state--completed {
+  border-color: transparent;
+  background: var(--teal-soft);
+  color: var(--teal-text);
+}
+
+.project-requirements,
+.project-checklist,
+.project-stage-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-requirement {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 0.92rem;
+}
+
+.project-requirement__mark {
+  flex: none;
+  width: 1.1em;
+  color: var(--locked);
+}
+
+.project-requirement.is-met .project-requirement__mark {
+  color: var(--green-text);
+}
+
+.project-requirement__skill {
+  color: var(--muted);
+}
+
+.project-requirement__value {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.project-checklist {
+  margin-top: 10px;
+  padding-left: 1.2em;
+  list-style: disc;
+  color: var(--text-2);
+}
+
+.project-text {
+  white-space: normal;
+}
+
+.project-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.project-section__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.project-stage-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+  background: var(--surface-soft);
+}
+
+.project-stage-list__name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.project-stage-list__meta {
+  flex-basis: 100%;
+  order: 3;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.project-stage-list__state {
+  margin-left: auto;
+}
+
+.project-stage-list__item[data-state="done"] .project-stage-list__state {
+  border-color: transparent;
+  background: var(--teal-soft);
+  color: var(--teal-text);
+}
+
+.project-stage-list__item[data-state="locked"] {
+  color: var(--locked);
+}
+
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+a.btn-run {
+  text-decoration: none;
+}
+
+.project-save-status {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.project-save-status + .text-btn {
+  margin-left: 0;
+}
+
+.code-field--project .code-field__input {
+  min-height: 20rem;
+}
+
+.run-row .project-next {
+  margin-left: auto;
+}
+
+.run-row .project-next[hidden] {
+  display: none;
+}
+
+#project-stages {
+  margin-top: 20px;
+}
+
+@media (max-width: 759px) {
+  .project-requirement {
+    flex-wrap: wrap;
+  }
+
+  .project-requirement__value {
+    margin-left: 1.9em;
+  }
+
+  .code-field--project .code-field__input {
+    min-height: 14rem;
+  }
+
+  .run-row .project-next {
+    margin-left: 0;
+  }
+
+  .project-card .exercise__head,
+  .project-detail .exercise__head {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .project-state {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

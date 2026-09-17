@@ -1,0 +1,69 @@
+{% extends "projects/base.html" %}
+
+{% block page_title %}{{ view.project.title }}{% endblock %}
+
+{% block breadcrumb %}
+              <li><a href="{% url 'projects:list' world.pk %}">Projects</a></li>
+              <li aria-current="page">{{ view.project.title }}</li>
+{% endblock %}
+
+{% block pager %}<span class="pager__label">{{ view.done_count }} of {{ view.total }} stages · {{ view.percent }}%</span>{% endblock %}
+
+{% block main %}
+        <div class="lesson__head">
+          {% include "projects/partials/icon.html" %}
+          <div>
+            <h1 id="lesson-title">{{ view.project.title }}</h1>
+            <p class="lesson__description">{{ view.project.summary }}</p>
+          </div>
+        </div>
+
+        <section class="exercise project-detail" aria-labelledby="brief-title">
+          <div class="exercise__head">
+            <span class="exercise__number" aria-hidden="true">★</span>
+            <div class="project-card__body">
+              <p class="exercise__kicker">{{ view.project.get_difficulty_display }} · {{ view.project.estimated_minutes }} min · {{ view.project.xp_reward }} XP</p>
+              <h2 id="brief-title" class="exercise__title">What you'll build</h2>
+              <p class="exercise__instruction project-text">{{ view.project.brief|linebreaksbr }}</p>
+            </div>
+            <span class="badge project-state project-state--{{ view.state }}"><span class="visually-hidden">Status: </span>{{ view.label }}</span>
+          </div>
+
+          <div class="project-section">
+            <h3 class="project-section__title">Concepts used</h3>
+            {% include "projects/partials/requirements.html" with requirements=view.requirements %}
+            {% if not view.requirements %}<p class="exercise__instruction">This project has no prerequisites.</p>{% endif %}
+          </div>
+
+          <div class="project-section">
+            <h3 class="project-section__title">Stages</h3>
+            <ol class="project-stage-list">
+              {% for entry in view.stages %}
+                <li class="project-stage-list__item" data-state="{{ entry.state }}">
+                  <span class="project-stage-list__name">{% if entry.available and view.unlocked %}<a href="{% url 'projects:stage' world.pk view.project.slug entry.stage.slug %}">{{ entry.number }}. {{ entry.stage.title }}</a>{% else %}{{ entry.number }}. {{ entry.stage.title }}{% endif %}</span>
+                  <span class="project-stage-list__meta">{{ entry.stage.objective }} · {{ entry.stage.estimated_minutes }} min</span>
+                  <span class="badge project-stage-list__state">{% if entry.state == "done" %}Done{% elif entry.state == "available" %}Ready{% else %}Locked{% endif %}</span>
+                </li>
+              {% endfor %}
+            </ol>
+          </div>
+
+          <div class="project-actions">
+            {% if view.state == "locked" %}
+              <p class="exercise__instruction"><strong>Locked.</strong> Reach the mastery shown above in each concept to unlock this project.</p>
+            {% elif view.state == "completed" %}
+              <p class="exercise__instruction"><strong>Completed {{ view.completion.completed_at|date:"j M Y" }}.</strong> You can revisit any stage.</p>
+              {% if view.stages %}<a class="btn-outline" href="{% url 'projects:stage' world.pk view.project.slug view.stages.0.stage.slug %}">Review stages</a>{% endif %}
+            {% elif view.current_stage %}
+              <a class="btn-run project-start" href="{% url 'projects:stage' world.pk view.project.slug view.current_stage.stage.slug %}">
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M6 4.2v11.6a.6.6 0 0 0 .9.5l9.3-5.8a.6.6 0 0 0 0-1L6.9 3.7a.6.6 0 0 0-.9.5Z" fill="currentColor"/></svg>
+                {% if view.started %}Continue stage {{ view.current_stage.number }}{% else %}Start project{% endif %}
+              </a>
+            {% endif %}
+          </div>
+        </section>
+{% endblock %}
+
+{% block progress_extra %}
+        {% include "projects/partials/stages.html" with item=None %}
+{% endblock %}

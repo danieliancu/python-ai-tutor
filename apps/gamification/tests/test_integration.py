@@ -132,4 +132,4 @@ class SummaryEndpointTests(GamificationFixtures, TestCase):
         )
         self.assertIn(response.status_code, (201, 400))
         self.assertFalse(XPEvent.objects.exists())
-        self.assertEqual(Achievement.objects.count(), 7)
+        self.assertEqual(Achievement.objects.count(), 8)

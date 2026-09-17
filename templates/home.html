@@ -10,73 +10,7 @@
   <p id="demo-note" class="visually-hidden">{% if player %}Not available yet.{% else %}Preview only. This control is not active yet.{% endif %}</p>
 
   <div class="app">
-    <header class="topbar">
-      <details class="menu" data-menu>
-        <summary class="icon-btn menu__trigger" aria-label="Menu">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </summary>
-        <nav class="menu__panel" aria-label="Menu">
-          <ul>
-            <li><a href="#lesson">Current lesson</a></li>
-            <li><a href="#progress">{{ lesson.course }} Mastery</a></li>
-            <li><a href="#skill-map">Skill map</a></li>
-            <li><a href="#tutor">AI Tutor</a></li>
-            <li><a href="#next-up">Next up</a></li>
-          </ul>
-        </nav>
-      </details>
-
-      <a class="brand" href="{% url 'home' %}">
-        {% include "includes/brand_mark.html" %}
-        <span class="brand__name">{{ product_name }}</span>
-      </a>
-
-      <nav class="primary-nav" aria-label="Primary">
-        <ul>
-          <li><a href="{% if player %}{{ player.config.urls.player }}{% else %}{% url 'home' %}{% endif %}" aria-current="page">Learn</a></li>
-          <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Practice</button></li>
-          <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Projects</button></li>
-          <li><button type="button" aria-disabled="true" aria-describedby="demo-note">Community</button></li>
-        </ul>
-      </nav>
-
-      <div class="search" role="search">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <label for="site-search" class="visually-hidden">Search lessons and topics</label>
-        <input id="site-search" type="search" placeholder="Search lessons, topics..." readonly aria-describedby="demo-note">
-      </div>
-
-      <ul class="stats-bar" aria-label="Your stats">
-        <li class="stat stat--streak"><span class="stat__icon" aria-hidden="true">🔥</span><span data-stat-streak>{{ progress.streak_days }}</span><span class="stat__word"> days</span><span class="visually-hidden"> streak</span></li>
-        <li class="stat stat--xp"><span class="stat__label">XP</span> <span data-stat-xp>{{ progress.xp }}</span></li>
-        <li class="stat stat--level">
-          <svg class="stat__gauge" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#e0e9ff"/><circle cx="10" cy="10" r="5.5" fill="none" stroke="#2f6fed" stroke-width="3" pathLength="100" stroke-dasharray="{{ progress.level_percent }} 100" transform="rotate(-90 10 10)" stroke-linecap="round" data-stat-gauge/></svg>
-          <span><span class="stat__word">Level </span><span data-stat-level>{{ progress.level }}</span></span>
-        </li>
-      </ul>
-
-      {% if user.is_authenticated %}
-        <details class="account-menu" data-menu>
-          <summary class="account-menu__trigger" aria-label="Account menu for {{ account_name }}">
-            <span class="avatar avatar--user" aria-hidden="true">
-              <svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="15.5" r="6.5" fill="#fff" fill-opacity=".92"/><path d="M8 34c1.6-7 6.3-10 12-10s10.4 3 12 10" fill="#fff" fill-opacity=".92"/></svg>
-            </span>
-          </summary>
-          <div class="menu__panel account-menu__panel">
-            <p class="account-menu__name">Signed in as <strong>{{ account_name }}</strong></p>
-            <ul>
-              <li><a href="{% url 'learners:profile' %}">Your profile</a></li>
-            </ul>
-            <form method="post" action="{% url 'accounts:logout' %}">
-              {% csrf_token %}
-              <button type="submit" class="account-menu__logout">Sign out</button>
-            </form>
-          </div>
-        </details>
-      {% else %}
-        <a class="signin-link" href="{% url 'accounts:login' %}">Sign in</a>
-      {% endif %}
-    </header>
+    {% include "includes/app_topbar.html" %}
 
     <div class="shell">
       <main id="lesson" class="lesson" tabindex="-1" aria-labelledby="lesson-title">

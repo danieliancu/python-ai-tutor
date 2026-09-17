@@ -1,0 +1,17 @@
+        <nav id="project-stages" class="skill-map" aria-label="Project stages">
+          <h2 class="skill-map__title">
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><rect x="3" y="11" width="3.2" height="6" rx="1" fill="#5cc9b5"/><rect x="8.4" y="7" width="3.2" height="10" rx="1" fill="#3aa6a0"/><rect x="13.8" y="3" width="3.2" height="14" rx="1" fill="#2f8f8a"/></svg>
+            {{ view.project.title }} · {{ view.done_count }} of {{ view.total }} stages
+          </h2>
+          <ol class="skills">
+            {% for entry in view.stages %}
+              {% with state=entry.state %}
+              <li class="skill" data-state="{% if state == 'done' %}mastered{% elif state == 'available' %}learning{% else %}locked{% endif %}"{% if item and entry.stage.pk == item.stage.pk %} aria-current="step"{% endif %}>
+                <span class="skill__dot" aria-hidden="true">{% if state == "done" %}<svg viewBox="0 0 20 20" width="12" height="12"><path d="m5 10.5 3.2 3L15 6.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endif %}</span>
+                <span class="skill__name">{% if state != "locked" and view.unlocked %}<a class="project-stage__link" href="{% url 'projects:stage' world.pk view.project.slug entry.stage.slug %}">{{ entry.number }}. {{ entry.stage.title }}</a>{% else %}{{ entry.number }}. {{ entry.stage.title }}{% endif %}</span>
+                <span class="skill__status">{% if state == "done" %}DONE{% elif state == "available" %}READY{% else %}LOCKED{% endif %}</span>
+              </li>
+              {% endwith %}
+            {% endfor %}
+          </ol>
+        </nav>

@@ -1,0 +1,11 @@
+{% if requirements %}
+  <ul class="project-requirements" aria-label="Required concepts">
+    {% for requirement in requirements %}
+      <li class="project-requirement{% if requirement.met %} is-met{% endif %}">
+        <span class="project-requirement__mark" aria-hidden="true">{% if requirement.met %}✓{% else %}○{% endif %}</span>
+        <span>{{ requirement.concept }} <span class="project-requirement__skill">· {{ requirement.skill }}</span></span>
+        <span class="project-requirement__value">{{ requirement.current }}% / {{ requirement.required }}%<span class="visually-hidden">{% if requirement.met %} (met){% else %} (not met yet){% endif %}</span></span>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

@@ -55,6 +55,24 @@ def attempt_rewards(attempt: ExerciseAttempt) -> dict:
     }
 
 
+def submission_rewards(submission) -> dict:
+    """What a project submission earned: XP and newly unlocked achievements."""
+    xp = (
+        XPEvent.objects.filter(project_submission=submission).aggregate(total=Sum("xp"))["total"]
+        or 0
+    )
+    awards = AchievementAward.objects.filter(project_submission=submission).select_related(
+        "achievement"
+    )
+    return {
+        "xp": xp,
+        "achievements": [
+            {"title": award.achievement.title, "description": award.achievement.description}
+            for award in awards
+        ],
+    }
+
+
 def profile_summary(learner: LearnerProfile) -> dict:
     awards = list(
         AchievementAward.objects.filter(learner=learner)

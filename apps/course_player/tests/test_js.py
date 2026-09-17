@@ -24,3 +24,13 @@ class CoursePlayerJavaScriptTests(SimpleTestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("passed", result.stdout)
+
+    def test_project_workspace_script_parses(self) -> None:
+        script = Path(settings.BASE_DIR) / "static" / "js" / "projects.js"
+        result = subprocess.run(
+            [NODE, "--check", str(script)], capture_output=True, text=True, timeout=60, check=False
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        source = script.read_text(encoding="utf-8")
+        self.assertNotIn("innerHTML", source)
+        self.assertNotIn("eval(", source)

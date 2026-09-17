@@ -231,8 +231,81 @@ Phase 9 adds **gamification** (`apps/gamification/`) and the **cursuri.net** bra
 
 **Recovery.** Gamification runs after learner intelligence and misconceptions in the post-attempt steps. A failure is logged and never undoes the attempt. `python manage.py rebuild_gamification` (optionally `--learner-id` or `--enrollment-id`) recomputes XP, levels, streaks, boss completions and achievements from stored attempts. Running it again changes nothing. Attempts made before Phase 9 are fully covered, including the first-try and independence bonuses. Skill-mastery milestones are reconciled from the *current* learner-intelligence state, so a skill mastered in the past and since decayed is not rewarded retroactively. The admin lists every Phase 9 model; there are no leaderboards and no virtual currency.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state, misconception detection, next-best-action decisions, the AI tutor with Python-specific teaching, the browser Course Player and gamification (XP, levels, streaks, achievements, Boss Challenges).
-**Not yet implemented:** Phase 10 Projects, Practice, Community, search, leaderboards, voice, streaming replies and billing.
+Phase 10 adds **Projects** (`apps/projects/`): larger applications that a learner builds step by step in one Python workspace. Projects belong to a World (course). The engine is generic, and Python evaluation is chosen by `World.domain`. Phase 10 content is Python only.
+
+**How projects differ**
+- **Exercises** teach one concept and feed mastery.
+- **Boss Challenges** (Phase 9) are single existing exercises marked as checkpoints.
+- **Projects** have several stages and combine many concepts. They keep the learner's code between stages, and have their own submission history and completion. They show that the learner can apply mastery, but they **never** change mastery, Next Best Action or the skill map.
+
+**Availability.** Every published project is listed on the course's Projects page, including locked ones. Each project has authored concept requirements (`ProjectConceptRequirement`, 65% mastery by default, same World only).
+- A project unlocks when the learner's current mastery (Learner Intelligence) meets every requirement. A project with no requirements is available at once.
+- XP, levels, streaks and achievements never unlock anything.
+- Locked cards explain why, for example "Loops · 40% / 65%".
+- Once a learner has started a project, it stays reachable even if mastery later dips.
+- States: Locked, Available, In progress, Completed.
+
+**Stages.** Stages are ordered. Stage 1 opens with the project, and each later stage opens once the previous one has passed. Progress is "completed stages / published stages" and is never stored.
+
+**Draft and resume**
+- One `ProjectDraft` per enrollment and project holds the learner's code.
+- The code is saved by the Save button, by a 4-second debounced autosave, before every check and before moving to the next stage. It survives wrong answers, unavailable checking and page reloads.
+- A new stage starts from the learner's passing code of the previous stage.
+- Reset returns to the project's starter code (stage 1) or to the last passing code of the previous stage. It never shows a solution.
+
+**Evaluation.** Each check is a `ProjectSubmission`: a safe snapshot of status, message, reason codes and duration. Numbering is unique per enrollment and stage.
+- **Deterministic only.** Stages are checked only in the existing isolated Docker runner, with no local fallback. A stage passes only on a deterministic result, never an AI judgement.
+- **Private spec.** A stage's `evaluation_spec` is private. It uses the `function` strategy or the `stdout` strategy, optionally with a private `driver` script. The driver is appended to the learner's program, and only what it prints (after a random marker) is compared.
+- **Structure checks.** `requires` lists functions, classes, methods and constructs (`try`, `with`, `open`, `while`, `main_guard` and so on). They are checked with `ast.parse` only, never by running code.
+- **Fixture files.** Stages can provide private fixture files, such as a CSV or JSON file. `PythonRunner.run_program(..., extra_files=...)` and `run_functions(..., extra_files=...)` place them in the container's temporary working directory through a small bootstrap. Calls without fixtures behave exactly as before.
+  - File names must be plain (`data.csv`): no paths, `..`, drive letters or hidden files.
+  - At most 8 files and 256 KiB of UTF-8 text in total.
+- **What learners see.** Only the status, a friendly reason and an exception name, for example "Your program needs a function named load_inventory." Hidden tests, expected output, fixture content and the learner's program output never come back.
+- **Runner unavailable.** If Docker is unavailable the submission is recorded as `unavailable`, and the code stays saved.
+
+**Project Coach.** The AI Tutor panel on a stage page is a project coach. It reuses the tutor's provider (OpenAI Responses API, `store=False`), configuration, rate limit and `TutorTurn` storage, and adds nullable `project` and `project_stage` fields to `TutorTurn`.
+- **What the model sees:** only public project and stage text, the learner's code (draft or current), safe feedback, the required concepts with the learner's mastery, and related misconceptions. It never sees tests, drivers, fixtures or a reference solution; project stages have no reference solution field at all.
+- **Help levels:**
+  - `/hint` gives a hint, then a strong hint;
+  - `/explain` gives an explanation;
+  - `/solution` only ever gets a strong hint;
+  - the coach is instructed never to write the finished program.
+- **Guard.** A reply with a code block over 15 lines, or one that implements everything the stage requires, is rejected.
+- **Separate history.** Project coach history is kept apart from the exercise tutor. Only one reply per project can be in progress, and coach turns never affect mastery, NBA or correctness.
+
+**Rewards.** Finishing every stage creates one `ProjectCompletion` per enrollment and project, even when final submissions arrive at the same time.
+- **XP.** Completion awards the project's `xp_reward` once, as a `project_completed` XP event (source key `project:<id>:completed`). Individual stages earn no XP.
+- **Achievement.** The first completed project earns the **Project Builder** achievement, which is not repeatable.
+- **Streaks.** Checked project work (`correct` or `incorrect`) counts as a learning day, at most once per day together with exercises.
+- **Recovery.** `rebuild_gamification` also reconstructs project rewards.
+- **Profile.** The profile page lists completed projects.
+
+**Python Foundations projects** (`python manage.py seed_python_projects`, idempotent, requirements resolved by `skill/concept` slug)
+
+| Project | Difficulty | Stages | XP | Combines |
+|---|---|---|---|---|
+| Number Analyzer | beginner | 4 | 100 | variables, if statements, lists, for loops |
+| Contact Book | beginner | 4 | 150 | functions, return values, dictionaries, list changes, loops, conditions |
+| Expense Tracker | intermediate | 4 | 200 | parameters, dictionaries, files, CSV, runtime errors (`transactions.csv` fixture) |
+| Inventory Manager | intermediate | 4 | 200 | classes, `__init__`, methods, JSON, runtime errors (`inventory.json` fixture) |
+| Personal Finance Manager | advanced | 5 | 250 | while loops, return values, dictionaries, CSV, data transformation, errors, methods, main guard (`statement.csv` fixture) |
+
+Reference solutions live in `apps/projects/data/python_foundations_solutions.py`. They are used only by the opt-in Docker test, which checks that every stage is solvable and not already solved by its starting code. They are never stored in the database.
+
+**Pages and endpoints**
+- **Pages:**
+  - `GET /learn/worlds/<id>/projects/` — the project list (the top-nav **Projects** link for the current course);
+  - `GET .../projects/<slug>/` — the project detail page;
+  - `GET .../projects/<slug>/stages/<stage>/` — the stage workspace.
+- **JSON endpoints** (sign-in, enrollment and CSRF required):
+  - `POST .../projects/<slug>/draft/`
+  - `POST .../stages/<stage>/submit/`
+  - `POST .../stages/<stage>/coach/`
+
+The workspace uses the existing editor, console, tutor and card styles.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state, misconception detection, next-best-action decisions, the AI tutor with Python-specific teaching, the browser Course Player, gamification (XP, levels, streaks, achievements, Boss Challenges) and Python Projects with a project coach.
+**Not yet implemented:** admin analytics (Phase 11), Practice, Community, search, leaderboards, public portfolios, voice, streaming replies and billing.
 
 ## Stack
 
@@ -263,6 +336,8 @@ apps/next_action/ Deterministic next-best-action engine and its read-only JSON e
 apps/course_player/ The learner Course Player: real data and interactions for the product shell
 apps/gamification/ XP events, levels, streaks, achievements, Boss Challenges, the stats summary
                  endpoint and the rebuild_gamification command
+apps/projects/    Staged projects: models, mastery-based availability, drafts, sandboxed
+                 evaluation (evaluation/), project coach, pages and seed_python_projects
 apps/ai_tutor/    AI tutor: context builder, help ladder, providers (OpenAI, fake), domain
                  adapters (domains/python), assistance reconstruction,
                  conversation history and the tutor JSON endpoints
@@ -322,10 +397,11 @@ python manage.py runserver
    python manage.py migrate
    python manage.py seed_curriculum
    python manage.py seed_python_exercises
+   python manage.py seed_python_projects
    python manage.py runserver
    ```
 
-5. Sign up, choose Python Foundations during onboarding, and you land in the Course Player.
+5. Sign up, choose Python Foundations during onboarding, and you land in the Course Player. The **Projects** tab lists the Python projects; checking project code needs the Docker runner.
 
 ### Curriculum and exercise data
 
@@ -335,9 +411,10 @@ Load or refresh the Python Foundations curriculum and its exercises after migrat
 python manage.py migrate
 python manage.py seed_curriculum
 python manage.py seed_python_exercises
+python manage.py seed_python_projects
 ```
 
-Both seeds are idempotent. Records are matched by slug within their parent, so running them again updates the seeded records (repairing manual edits) without duplicating them, and they never delete records they don't define. `seed_python_exercises` stops with an error if the curriculum hasn't been seeded yet.
+All three seeds are idempotent. Records are matched by slug within their parent, so running them again updates the seeded records (repairing manual edits) without duplicating them, and they never delete records they don't define. `seed_python_exercises` and `seed_python_projects` stop with an error if the curriculum (or a concept a project requires) hasn't been seeded yet.
 
 Once the server is running, these URLs are available:
 
@@ -446,8 +523,10 @@ The Docker runner has an opt-in integration suite (real containers; includes che
 ```powershell
 docker pull python:3.11-slim
 $env:PYTHON_RUNNER_INTEGRATION = "1"
-python manage.py test apps.python_runner.tests
+python manage.py test apps.python_runner.tests apps.projects.tests
 ```
+
+The normal test suite never needs Docker, the internet or an OpenAI key.
 
 ## Dependencies
 

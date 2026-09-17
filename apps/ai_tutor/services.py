@@ -315,3 +315,9 @@ def _fail(turn: TutorTurn, code: str, latency: int | None) -> None:
         logger.exception("Could not mark tutor turn %s as failed.", turn.pk)
         return
     logger.warning("Tutor turn %s failed: %s", turn.pk, turn.error_code)
+
+
+# Shared building blocks for other tutor surfaces (the project coach).
+validate_turn_input = _validate
+fail_turn = _fail
+elapsed_ms = _elapsed

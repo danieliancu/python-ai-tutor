@@ -1,0 +1,42 @@
+{% extends "projects/base.html" %}
+
+{% block main %}
+        <div class="lesson__head">
+          {% include "projects/partials/icon.html" %}
+          <div>
+            <h1 id="lesson-title">{{ course.title }} Projects</h1>
+            <p class="lesson__description">Build real programs that combine what you've learned. Each project unlocks when you've mastered the concepts it uses.</p>
+          </div>
+        </div>
+
+        {% if projects %}
+          <ol class="project-list">
+            {% for item in projects %}
+              <li>
+                <section class="exercise project-card" aria-labelledby="project-{{ item.project.pk }}-title" data-state="{{ item.state }}">
+                  <div class="exercise__head">
+                    <span class="exercise__number" aria-hidden="true">{{ forloop.counter }}</span>
+                    <div class="project-card__body">
+                      <p class="exercise__kicker">{{ item.project.get_difficulty_display }} · {{ item.project.estimated_minutes }} min · {{ item.project.xp_reward }} XP</p>
+                      <h2 id="project-{{ item.project.pk }}-title" class="exercise__title">
+                        {% if item.unlocked %}<a class="project-card__link" href="{% url 'projects:detail' world.pk item.project.slug %}">{{ item.project.title }}</a>{% else %}{{ item.project.title }}{% endif %}
+                      </h2>
+                      <p class="exercise__instruction">{{ item.project.summary }}</p>
+                      <p class="project-card__progress">{{ item.done_count }} of {{ item.total }} stages · {{ item.percent }}%</p>
+                      {% if item.state == "locked" %}
+                        <p class="project-card__requires">Requires:</p>
+                        {% include "projects/partials/requirements.html" with requirements=item.requirements %}
+                      {% endif %}
+                    </div>
+                    <span class="badge project-state project-state--{{ item.state }}"><span class="visually-hidden">Status: </span>{{ item.label }}</span>
+                  </div>
+                </section>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <section class="exercise">
+            <p class="exercise__instruction">No projects are available for this course yet.</p>
+          </section>
+        {% endif %}
+{% endblock %}

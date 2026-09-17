@@ -33,6 +33,21 @@ class TutorTurn(models.Model):
         blank=True,
         related_name="tutor_turns",
     )
+    # Project coach turns: a project (and the stage being worked on), never an exercise.
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="coach_turns",
+    )
+    project_stage = models.ForeignKey(
+        "projects.ProjectStage",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="coach_turns",
+    )
 
     requested_intent = models.CharField(max_length=16, choices=Intent.choices)
     response_kind = models.CharField(max_length=16, choices=ResponseKind.choices, blank=True)
@@ -73,9 +88,26 @@ class TutorTurn(models.Model):
                 condition=Q(status=TurnStatus.PENDING, exercise__isnull=False),
                 name="ai_tutor_turn_one_pending_exercise",
             ),
+            models.UniqueConstraint(
+                fields=["enrollment", "project"],
+                condition=Q(status=TurnStatus.PENDING, project__isnull=False),
+                name="ai_tutor_turn_one_pending_project",
+            ),
+            models.CheckConstraint(
+                condition=Q(project__isnull=True) | Q(exercise__isnull=True, attempt__isnull=True),
+                name="ai_tutor_turn_project_or_exercise",
+            ),
+            models.CheckConstraint(
+                condition=Q(project_stage__isnull=True) | Q(project__isnull=False),
+                name="ai_tutor_turn_stage_needs_project",
+            ),
         ]
         indexes = [
             models.Index(fields=["enrollment", "created_at"], name="ai_tutor_turn_recent"),
+            models.Index(
+                fields=["enrollment", "project", "status", "created_at"],
+                name="ai_tutor_turn_project",
+            ),
             models.Index(
                 fields=["enrollment", "status", "created_at"], name="ai_tutor_turn_history"
             ),

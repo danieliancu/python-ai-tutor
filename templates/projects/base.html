@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% block page_title %}Projects{% endblock %} · {{ course.title }} · {{ product_name }}{% endblock %}
+{% block body_class %}app-page{% endblock %}
+{% block skip_target %}lesson{% endblock %}
+{% block skip_label %}Skip to content{% endblock %}
+
+{% block body %}
+  <p id="demo-note" class="visually-hidden">Not available yet.</p>
+
+  <div class="app">
+    {% include "includes/app_topbar.html" %}
+
+    <div class="shell">
+      <main id="lesson" class="lesson" tabindex="-1" aria-labelledby="lesson-title">
+        <div class="lesson__meta">
+          <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+              <li>
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="currentColor"/><circle cx="14" cy="9" r="2.2" fill="currentColor" opacity=".7"/><circle cx="7" cy="14.5" r="2.2" fill="currentColor" opacity=".45"/></svg>
+                <span>{{ course.title }}</span>
+              </li>
+              {% block breadcrumb %}<li aria-current="page">Projects</li>{% endblock %}
+            </ol>
+          </nav>
+          <div class="pager">
+            {% block pager %}{% endblock %}
+          </div>
+        </div>
+
+        {% block main %}{% endblock %}
+      </main>
+
+      <aside id="progress" class="side-progress" aria-labelledby="mastery-title">
+        {% include "course_player/partials/progress.html" %}
+        {% block progress_extra %}{% endblock %}
+      </aside>
+
+      <aside id="tutor" class="side-tutor" aria-labelledby="{% block side_label %}next-title{% endblock %}">
+        {% block side %}
+          <section id="next-up" class="next-up" aria-labelledby="next-title">
+            <div class="next-up__head">
+              <span class="next-up__marker" aria-hidden="true"></span>
+              <h2 class="next-up__label">Keep learning</h2>
+              <span class="badge badge--teal">Learn</span>
+            </div>
+            <div class="next-up__body">
+              <span class="next-up__icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" width="30" height="30"><rect x="6" y="17" width="5" height="9" rx="1.2" fill="#5cc9b5"/><rect x="13.5" y="11" width="5" height="15" rx="1.2" fill="#3aa6a0"/><rect x="21" y="6" width="5" height="20" rx="1.2" fill="#2f8f8a"/></svg>
+              </span>
+              <div>
+                <h3 id="next-title" class="next-up__title">{{ course.title }}</h3>
+                <p class="next-up__description">Projects unlock as you master the concepts they use.</p>
+              </div>
+            </div>
+            <a class="btn-outline" href="{{ nav.learn_url }}">
+              <span>Continue learning</span>
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h11m-4-4.5 4.5 4.5-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </section>
+        {% endblock %}
+
+        <p class="tagline">
+          <svg viewBox="0 0 40 24" width="40" height="24" aria-hidden="true"><path d="M2 21 14 7l6 7 5-5 13 12Z" fill="currentColor" opacity=".35"/><path d="m11 10.5 3-3.5 3 3.5-1.5-.8-1.5 1-1.5-1Z" fill="#fff" opacity=".8"/></svg>
+          <span>Better developers,<br>a brighter tomorrow</span>
+        </p>
+      </aside>
+    </div>
+  </div>
+{% endblock %}
+
+{% block footer %}
+  <footer class="site-footer">
+    <p>{{ product_name }} · Learn one step at a time.</p>
+  </footer>
+{% endblock %}
+
+{% block extra_js %}
+  {% block page_data %}{% endblock %}
+  <script src="{% static 'js/course_player.js' %}" defer></script>
+  {% block page_js %}{% endblock %}
+{% endblock %}

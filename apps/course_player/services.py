@@ -311,6 +311,11 @@ def build_course_player_context(
         **progress,
         "lesson": lesson,
         "course": {"title": world.title, "domain": world.domain},
+        "nav": {
+            "page": "learn",
+            "learn_url": url,
+            "projects_url": reverse("projects:list", args=[world.pk]),
+        },
         "quote": QUOTE,
         "player": {
             "world_id": world.pk,

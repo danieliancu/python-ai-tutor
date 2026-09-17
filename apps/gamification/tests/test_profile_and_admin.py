@@ -24,7 +24,7 @@ class ProfilePageTests(GamificationFixtures, TestCase):
         self.assertContains(response, "<dt>Level</dt><dd>1</dd>", html=False)
         self.assertContains(response, "<dt>Total XP</dt><dd>0</dd>", html=False)
         self.assertContains(response, "<dt>Current streak</dt><dd>0 days</dd>", html=False)
-        self.assertContains(response, "Achievements · 0 of 7")
+        self.assertContains(response, "Achievements · 0 of 8")
         self.assertContains(response, "No achievements yet.")
         self.assertContains(response, "Your profile · cursuri.net")
 
@@ -34,7 +34,7 @@ class ProfilePageTests(GamificationFixtures, TestCase):
         self.assertContains(response, "<dt>Total XP</dt><dd>30</dd>", html=False)
         self.assertContains(response, "<dt>Current streak</dt><dd>1 day</dd>", html=False)
         self.assertContains(response, "<dt>Longest streak</dt><dd>1 day</dd>", html=False)
-        self.assertContains(response, "Achievements · 2 of 7")
+        self.assertContains(response, "Achievements · 2 of 8")
         self.assertContains(response, "First Step")
         self.assertContains(response, "Independent Thinker")
         self.assertContains(response, "status-badge--uncommon")
@@ -52,7 +52,7 @@ class ProfilePageTests(GamificationFixtures, TestCase):
     def test_bounded_queries(self) -> None:
         self.correct_mcq()
         self.correct_numeric()
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(8):
             self.client.get(reverse("learners:profile"))
 
 

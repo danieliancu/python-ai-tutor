@@ -182,9 +182,9 @@ def recent_history(enrollment: Enrollment, limit: int) -> tuple[HistoryItem, ...
     if limit <= 0:
         return ()
     turns = list(
-        TutorTurn.objects.filter(enrollment=enrollment, status=TurnStatus.COMPLETE).order_by(
-            "-created_at", "-id"
-        )[:limit]
+        TutorTurn.objects.filter(
+            enrollment=enrollment, status=TurnStatus.COMPLETE, project__isnull=True
+        ).order_by("-created_at", "-id")[:limit]
     )
     return tuple(
         HistoryItem(
