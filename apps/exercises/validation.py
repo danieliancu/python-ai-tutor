@@ -9,6 +9,7 @@ This module only checks structure. Judging answers is the job of ``apps.evaluati
 """
 
 import math
+import re
 from collections.abc import Callable
 
 from django.core.exceptions import ValidationError
@@ -29,6 +30,9 @@ ANSWER_KEYS = frozenset(
 )
 
 CODE_STRATEGIES = ("stdout", "function")
+
+MISCONCEPTION_CODE = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)*")
+MAX_MISCONCEPTION_CODE_LENGTH = 64
 
 
 def _optional_strings(content: dict, *keys: str) -> list[str]:
@@ -177,6 +181,25 @@ def _code_spec(spec: dict, content: dict) -> list[str]:
     return errors
 
 
+def _misconception_tags(spec: dict) -> list[str]:
+    """Optional, any response type: candidate misconception codes (private, never shown)."""
+    if "misconceptions" not in spec:
+        return []
+    tags = spec["misconceptions"]
+    if (
+        not isinstance(tags, list)
+        or not all(
+            isinstance(tag, str)
+            and len(tag) <= MAX_MISCONCEPTION_CODE_LENGTH
+            and MISCONCEPTION_CODE.fullmatch(tag)
+            for tag in tags
+        )
+        or len(set(tags)) != len(tags)
+    ):
+        return ["“misconceptions” must be a list of unique lowercase codes such as “off-by-one”."]
+    return []
+
+
 # Evaluation contracts per response type. Types not listed here (translation, maths
 # expressions, speaking, listening) get their contracts together with their evaluators.
 SPEC_VALIDATORS: dict[str, Callable[[dict, dict], list[str]]] = {
@@ -205,13 +228,14 @@ def validate_exercise_json(
     if not isinstance(evaluation_spec, dict):
         errors["evaluation_spec"] = ["Evaluation spec must be a JSON object."]
     elif evaluation_spec or require_spec:
+        spec_errors = _misconception_tags(evaluation_spec)
         spec_validator = SPEC_VALIDATORS.get(response_type)
         if spec_validator:
-            spec_errors = spec_validator(
+            spec_errors += spec_validator(
                 evaluation_spec, content if isinstance(content, dict) else {}
             )
-            if spec_errors:
-                errors["evaluation_spec"] = spec_errors
+        if spec_errors:
+            errors["evaluation_spec"] = spec_errors
 
     if not isinstance(content, dict):
         errors["content"] = ["Content must be a JSON object."]

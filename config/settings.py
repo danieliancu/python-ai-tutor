@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.python_runner",
     "apps.attempts",
     "apps.learner_intelligence",
+    "apps.misconceptions",
 ]
 
 MIDDLEWARE = [

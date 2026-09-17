@@ -2,6 +2,7 @@
 
 import json
 import logging
+from importlib import import_module
 
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import AnonymousUser
@@ -159,23 +160,34 @@ def record_attempt(
     else:
         raise AssertionError("unreachable")
 
-    _refresh_learner_state(attempt)
+    _refresh_derived_state(attempt)
     return attempt
 
 
-def _refresh_learner_state(attempt: ExerciseAttempt) -> None:
-    """Update derived learner state. The stored attempt matters more, so never fail here."""
-    # Local import: learner intelligence depends on attempts, not the other way round.
-    from apps.learner_intelligence.services import refresh_for_attempt
+# Derived layers refreshed after every stored attempt, in order: (label, module, rebuild command).
+DERIVED_REFRESHES = (
+    ("Learner intelligence", "apps.learner_intelligence.services", "rebuild_learner_intelligence"),
+    ("Misconception", "apps.misconceptions.services", "rebuild_misconceptions"),
+)
 
-    try:
-        refresh_for_attempt(attempt)
-    except Exception:
-        logger.exception(
-            "Learner intelligence refresh failed for attempt %s; "
-            "run rebuild_learner_intelligence to recover.",
-            attempt.pk,
-        )
+
+def _refresh_derived_state(attempt: ExerciseAttempt) -> None:
+    """Update derived state. The stored attempt matters more, so never fail here.
+
+    Each layer refreshes in its own transaction and failures are isolated: one layer failing
+    never undoes the attempt or another layer. Rebuild commands recover anything missed.
+    """
+    for label, module_path, command in DERIVED_REFRESHES:
+        try:
+            # Imported lazily: these apps depend on attempts, not the other way round.
+            import_module(module_path).refresh_for_attempt(attempt)
+        except Exception:
+            logger.exception(
+                "%s refresh failed for attempt %s; run %s to recover.",
+                label,
+                attempt.pk,
+                command,
+            )
 
 
 def _is_numbering_conflict(exc: Exception) -> bool:

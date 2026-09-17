@@ -57,6 +57,15 @@ def concept_signals(concept, state: ConceptState | None, now: datetime) -> dict:
     }
 
 
+def concept_misconceptions(enrollment: Enrollment) -> dict[int, list[dict]]:
+    """Active and watched misconceptions per concept (safe summaries only)."""
+    # Local import keeps the dependency one-way at import time: misconceptions builds on
+    # learner intelligence scoring, and only this presentation layer reads it back.
+    from apps.misconceptions.presentation import misconception_overview
+
+    return misconception_overview(enrollment)
+
+
 def student_state_for_enrollment(enrollment: Enrollment, *, now: datetime | None = None) -> dict:
     now = now or timezone.now()
     concepts = list(published_concepts_for_world(enrollment.world_id))
@@ -67,10 +76,17 @@ def student_state_for_enrollment(enrollment: Enrollment, *, now: datetime | None
         skills.setdefault(concept.skill_id, {"skill": concept.skill, "concepts": []})
         skills[concept.skill_id]["concepts"].append(concept)
 
+    misconceptions = concept_misconceptions(enrollment)
+    visible = [item for c in concepts for item in misconceptions.get(c.pk, [])]
+
     return {
         "world_id": enrollment.world_id,
         "generated_at": now.isoformat(),
-        "summary": summarise(concepts, states, now),
+        "summary": {
+            **summarise(concepts, states, now),
+            "active_misconceptions": sum(i["status"] == "active" for i in visible),
+            "watch_misconceptions": sum(i["status"] == "watch" for i in visible),
+        },
         "skills": [
             {
                 "skill_id": skill_id,
@@ -79,5 +95,11 @@ def student_state_for_enrollment(enrollment: Enrollment, *, now: datetime | None
             }
             for skill_id, group in skills.items()
         ],
-        "concepts": [concept_signals(c, states.get(c.pk), now) for c in concepts],
+        "concepts": [
+            {
+                **concept_signals(c, states.get(c.pk), now),
+                "misconceptions": misconceptions.get(c.pk, []),
+            }
+            for c in concepts
+        ],
     }

@@ -70,12 +70,28 @@ Phase 6 adds deterministic learner intelligence (`apps/learner_intelligence/`). 
 - **Trend**: `rising`, `stable` or `falling` (latest 3 attempts against the 3 before), once there are 6 judged attempts.
 - **Review due**: `review_due_at` comes from mastery and retention (0–60 days after the last judged attempt). Whether a concept is due is worked out when read.
 
-Only `correct` and `incorrect` attempts count; unsupported, unavailable, invalid and review-required attempts never lower a score. Attempts remain the source of truth: `ConceptState` and `ConceptModeState` are derived, versioned (`algorithm_version`) and rebuildable with `python manage.py rebuild_learner_intelligence` (optionally `--enrollment-id` or `--world-slug`). If a refresh fails, the attempt is still saved and the error is logged. No AI makes these decisions. There is no next-best-action and no misconception detection yet.
+Only `correct` and `incorrect` attempts count; unsupported, unavailable, invalid and review-required attempts never lower a score. Attempts remain the source of truth: `ConceptState` and `ConceptModeState` are derived, versioned (`algorithm_version`) and rebuildable with `python manage.py rebuild_learner_intelligence` (optionally `--enrollment-id` or `--world-slug`). If a refresh fails, the attempt is still saved and the error is logged. No AI makes these decisions. There is no next-best-action yet.
 
 `GET /app/worlds/<id>/learning-state/` (session login, active or completed enrollment) returns your read-only Student State for a World: summary counts, per-skill summaries and per-concept signals, without answers or evaluation data. The learning state can't be written through the API; the admin shows it read-only.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history and deterministic learner state (mastery, retention, review dates).
-**Not yet implemented:** misconception detection, next-best-action, AI tutoring and feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 6B adds deterministic misconception detection (`apps/misconceptions/`). An `AttemptMistake` records what went wrong in one submission (for example `output_mismatch`). A `MisconceptionState` is a learning pattern inferred from repeated evidence (for example `range-exclusive-stop`), tracked per enrollment and concept:
+
+- **Evidence.** After every attempt, detectors turn the attempt into `MisconceptionEvidence`:
+  - A failed exercise gives weak candidate evidence for each misconception tag in its private `evaluation_spec["misconceptions"]`.
+  - Deterministic Python rules give strong evidence when the mistake is unambiguous. They cover: a range stop one too low, a reversed comparison, `>` versus `>=`, a missing or wrongly signed range step, a `while` loop that timed out, `IndentationError`/`TabError`, and a swapped `break`/`continue`. The rules only read the code (Python `ast`); learner code never runs inside Django.
+  - A correct answer is counter-evidence. Its weight drops when hints, explanations or the solution were used.
+- **Confidence** is a deterministic 0–100 evidence score, not a probability. Recent evidence counts more, and one submission counts only once per misconception.
+- **Statuses:**
+  - `watch`: some evidence, not yet persistent. One wrong answer never goes further than this.
+  - `active`: confidence of at least 60 plus recurring evidence (two different exercises, three failed attempts, or two strong detector hits).
+  - `resolved`: it was active, confidence has dropped below 30, and at least two meaningful correct answers came after the last failure. A resolved misconception becomes active again if the evidence comes back.
+- **Rebuilding.** Raw mistake codes are never misconceptions on their own. Evidence and state are derived, versioned and rebuildable with `python manage.py rebuild_misconceptions` (optionally `--enrollment-id` or `--world-slug`). A failed refresh never removes the attempt or the learner-intelligence state.
+- **Student State.** The learning-state endpoint lists each concept's active and watched misconceptions (code, title, status, confidence) and counts them in its summary. Evidence, answers and exercise specs are never exposed.
+
+No AI decides any of this, and there is no next-best-action yet.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history, deterministic learner state (mastery, retention, review dates) and misconception detection.
+**Not yet implemented:** next-best-action, AI tutoring and feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -100,6 +116,8 @@ apps/python_runner/ Docker-isolated Python execution and the Python code evaluat
 apps/attempts/   Learner attempt history, mistake codes and the attempt JSON endpoints
 apps/learner_intelligence/ Derived learner state (mastery, retention, review), Student State
                  endpoint and the rebuild_learner_intelligence command
+apps/misconceptions/ Misconception catalog, detectors (generic + Python), derived evidence/state
+                 and the rebuild_misconceptions command
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -230,6 +248,7 @@ python manage.py check                  # Django system checks
 python manage.py makemigrations --check --dry-run   # fails if model changes lack migrations
 python manage.py test                   # run the test suite (never needs Docker)
 python manage.py rebuild_learner_intelligence   # recalculate learner state from attempts
+python manage.py rebuild_misconceptions          # recalculate misconceptions from attempts
 ruff check .                            # lint
 ruff format .                           # format (use --check in CI)
 ```

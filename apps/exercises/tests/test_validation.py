@@ -269,3 +269,31 @@ class EvaluationSpecTests(SimpleTestCase):
         ):
             with self.subTest(spec=spec):
                 self.assert_spec_invalid(ResponseType.CODE, spec, text)
+
+
+class MisconceptionTagTests(SimpleTestCase):
+    content = {"options": [{"id": "a", "text": "A"}, {"id": "b", "text": "B"}]}
+
+    def spec(self, tags) -> dict:
+        return {"correct_option": "a", "misconceptions": tags}
+
+    def test_valid_tags_are_accepted_for_any_type(self) -> None:
+        validate_exercise_json(
+            ResponseType.MULTIPLE_CHOICE, self.content, self.spec(["off-by-one", "sign_error"])
+        )
+        validate_exercise_json(ResponseType.MULTIPLE_CHOICE, self.content, self.spec([]))
+        validate_exercise_json(ResponseType.SPEAKING, {}, {"misconceptions": ["third-person-s"]})
+
+    def test_malformed_tags_are_rejected(self) -> None:
+        for tags in (
+            "off-by-one",
+            ["Off-By-One"],
+            ["off by one"],
+            ["-leading"],
+            ["off-by-one", "off-by-one"],
+            [3],
+            ["x" * 65],
+        ):
+            with self.subTest(tags=tags), self.assertRaises(ValidationError) as caught:
+                validate_exercise_json(ResponseType.MULTIPLE_CHOICE, self.content, self.spec(tags))
+            self.assertIn("evaluation_spec", caught.exception.message_dict)

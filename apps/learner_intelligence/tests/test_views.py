@@ -47,6 +47,8 @@ SUMMARY_KEYS = {
     "practising",
     "mastered",
     "review_due",
+    "active_misconceptions",
+    "watch_misconceptions",
 }
 CONCEPT_KEYS = {
     "concept_id",
@@ -65,6 +67,7 @@ CONCEPT_KEYS = {
     "review_due_at",
     "review_due",
     "modes",
+    "misconceptions",
 }
 
 
@@ -159,10 +162,13 @@ class LearningStateEndpointTests(IntelligenceFixtures, TestCase):
                 "practising": 0,
                 "mastered": 0,
                 "review_due": 1,
+                "active_misconceptions": 0,
+                "watch_misconceptions": 0,
             },
         )
         self.assertEqual([s["skill_id"] for s in data["skills"]], [skill.pk, second_skill.pk])
         self.assertEqual(data["skills"][0]["concepts_total"], 2)
+        self.assertNotIn("active_misconceptions", data["skills"][0])
         self.assertEqual(data["skills"][1]["concepts_started"], 0)
 
         concepts = {c["concept_id"]: c for c in data["concepts"]}
