@@ -60,8 +60,22 @@ Authenticated JSON endpoints (session login and CSRF token required):
 
 Only learners with an active or completed enrollment can use them, and only for exercises that are currently published.
 
-**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution and saved attempt history.
-**Not yet implemented:** mastery, progress, review scheduling, AI feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
+Phase 6 adds deterministic learner intelligence (`apps/learner_intelligence/`). After every stored attempt, the learner's state for that concept is recalculated from their attempt history:
+
+- **Mastery** (0–100, band `not_started` / `weak` / `learning` / `practising` / `mastered`): recent judged attempts, weighted by learning mode (recognise < complete < fix < create), recency and how much help was used. One answer can't give full mastery. Recognition alone is capped at 65, completion at 80 and fixing at 90, and `mastered` needs a correct fix or create answer.
+- **Mode performance**: a separate score for recognise, complete, fix and create.
+- **Independence**: success without hints, explanations or solutions.
+- **Fluency**: correct, independent and within the exercise's target time. Empty when there is no timing data.
+- **Retention**: correct answers at least 24 hours after the previous attempt. Quick repetition doesn't count, and the score is empty until spaced evidence exists.
+- **Trend**: `rising`, `stable` or `falling` (latest 3 attempts against the 3 before), once there are 6 judged attempts.
+- **Review due**: `review_due_at` comes from mastery and retention (0–60 days after the last judged attempt). Whether a concept is due is worked out when read.
+
+Only `correct` and `incorrect` attempts count; unsupported, unavailable, invalid and review-required attempts never lower a score. Attempts remain the source of truth: `ConceptState` and `ConceptModeState` are derived, versioned (`algorithm_version`) and rebuildable with `python manage.py rebuild_learner_intelligence` (optionally `--enrollment-id` or `--world-slug`). If a refresh fails, the attempt is still saved and the error is logged. No AI makes these decisions. There is no next-best-action and no misconception detection yet.
+
+`GET /app/worlds/<id>/learning-state/` (session login, active or completed enrollment) returns your read-only Student State for a World: summary counts, per-skill summaries and per-concept signals, without answers or evaluation data. The learning state can't be written through the API; the admin shows it read-only.
+
+**Available:** curriculum data, learner accounts, profiles, World enrollment, the Python Foundations exercises (editable in the admin), answer evaluation, isolated Python execution, saved attempt history and deterministic learner state (mastery, retention, review dates).
+**Not yet implemented:** misconception detection, next-best-action, AI tutoring and feedback, gamification and a learner interface for exercises. The homepage is still the Phase 1 demo; its Run Code button is not connected.
 
 ## Stack
 
@@ -84,6 +98,8 @@ apps/exercises/  Exercise model, validation, safe presentation, selectors, acces
 apps/evaluation/ Evaluation engine: result type, evaluator registry and evaluators
 apps/python_runner/ Docker-isolated Python execution and the Python code evaluator
 apps/attempts/   Learner attempt history, mistake codes and the attempt JSON endpoints
+apps/learner_intelligence/ Derived learner state (mastery, retention, review), Student State
+                 endpoint and the rebuild_learner_intelligence command
 templates/       Project-level templates
 static/          Project-level static files (css/, vendor/htmx.min.js)
 ```
@@ -213,6 +229,7 @@ Docker containers on the application host are a reasonable boundary for this sta
 python manage.py check                  # Django system checks
 python manage.py makemigrations --check --dry-run   # fails if model changes lack migrations
 python manage.py test                   # run the test suite (never needs Docker)
+python manage.py rebuild_learner_intelligence   # recalculate learner state from attempts
 ruff check .                            # lint
 ruff format .                           # format (use --check in CI)
 ```

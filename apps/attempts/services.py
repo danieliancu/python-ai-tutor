@@ -140,7 +140,7 @@ def record_attempt(
     for retry in range(NUMBERING_RETRIES):
         try:
             with transaction.atomic():
-                return _store(
+                attempt = _store(
                     enrollment,
                     exercise,
                     snapshot,
@@ -151,11 +151,31 @@ def record_attempt(
                     used_solution=used_solution,
                     duration_seconds=duration_seconds,
                 )
+            break
         except (IntegrityError, ValidationError) as exc:
             # Another submission took the same attempt number; try the next one.
             if retry == NUMBERING_RETRIES - 1 or not _is_numbering_conflict(exc):
                 raise
-    raise AssertionError("unreachable")
+    else:
+        raise AssertionError("unreachable")
+
+    _refresh_learner_state(attempt)
+    return attempt
+
+
+def _refresh_learner_state(attempt: ExerciseAttempt) -> None:
+    """Update derived learner state. The stored attempt matters more, so never fail here."""
+    # Local import: learner intelligence depends on attempts, not the other way round.
+    from apps.learner_intelligence.services import refresh_for_attempt
+
+    try:
+        refresh_for_attempt(attempt)
+    except Exception:
+        logger.exception(
+            "Learner intelligence refresh failed for attempt %s; "
+            "run rebuild_learner_intelligence to recover.",
+            attempt.pk,
+        )
 
 
 def _is_numbering_conflict(exc: Exception) -> bool:
